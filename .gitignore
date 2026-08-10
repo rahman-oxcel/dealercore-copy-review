@@ -1,0 +1,18 @@
+# The repo is public: only the ENCRYPTED page ships. Everything below holds the
+# review content in the clear and must never be committed.
+ben_review_sheet.xlsx
+DealerCore-Reviewed-Copy.html
+old_raw.json
+old_templates.json
+new_templates.json
+join_map.json
+qa_old.json
+audit.json
+data/issues.json
+assets/
+
+node_modules/
+package-lock.json
+site/
+.staticrypt.json
+.claude/
