@@ -180,8 +180,10 @@ const templates = wb.SheetNames.filter((n) => !META.has(n)).map((name) => {
 });
 
 // Corrections to known errors in the sheet, kept out of the extractor itself.
-const { applyOverrides } = require('./lib/overrides.js');
+const { applyOverrides, applySubjects } = require('./lib/overrides.js');
 const patched = applyOverrides(templates);
+const subjed = applySubjects(templates);
+if (subjed.length) console.log('--- subject lines rewritten: ' + subjed.length + ' ---');
 if (patched.length) {
   console.log('--- overrides applied ---');
   patched.forEach((p) => console.log('  ' + (p.ok ? (p.skipped ? 'skip' : ' ok ') : 'FAIL') + '  ' + p.tab + ': ' + p.what));

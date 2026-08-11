@@ -68,8 +68,9 @@ code{font-family:Consolas,"SFMono-Regular",monospace;font-size:12.5px;background
 .tab.empty{color:#b3bec7}
 .tab.empty span{text-decoration:line-through}
 .tab.empty.on{background:#98a4ae;color:#fff}
-/* Fixed height so switching channel never jolts the layout */
-.panel{height:520px;overflow:auto}
+/* Height is set per template by fit(), sized to the taller of the two previews
+   so neither side scrolls. The value here is only the pre-measurement default. */
+.panel{height:520px;overflow:hidden}
 .chan{padding:16px 18px}
 
 .pagenav{display:flex;justify-content:space-between;gap:16px;margin-top:40px}
@@ -90,6 +91,10 @@ code{font-family:Consolas,"SFMono-Regular",monospace;font-size:12.5px;background
 .chip.REVISED{background:#e9f4fb;color:#0d5f8c;border-color:#c3e0f1}
 .chip.UNCHANGED{background:#f1f4f7;color:#5c6a77;border-color:#dde4ea}
 .chip.REDUNDANT{background:#fdeceb;color:#8c2418;border-color:#f2ccc6}
+.chip.LAYOUT{background:#f2f0f7;color:#544273;border-color:#ddd6ea}
+.dot.LAYOUT{background:#8b7aa8}
+.layoutnote{margin:10px 0 0;padding-left:17px;font-size:13.5px;color:#5b6873}
+.layoutnote li{margin-bottom:4px}
 .chip.soft{background:#f7f9fb;color:#5c6a77;border-color:#e0e7ec;font-weight:600;text-transform:none;letter-spacing:0}
 .track{margin-left:auto;font-size:12px;font-weight:700;color:#008BC7;text-decoration:none;border:1px solid #c3e0f1;border-radius:999px;padding:3px 11px;background:#f4fafd}
 .track:hover{background:#e9f4fb}
@@ -155,34 +160,39 @@ code{font-family:Consolas,"SFMono-Regular",monospace;font-size:12.5px;background
 .dl-tx i{font-size:8.5px;font-weight:600;font-style:normal;letter-spacing:.42em;color:#3B82F6;text-transform:uppercase;margin-top:3px}
 .dc-mark-sm{height:17px;width:auto;display:inline-block;vertical-align:-3px;margin-left:4px}
 .dc-mark-side{height:22px;width:auto;display:block}
-.dc-cta{background:#008BC7}
-.dc-help a,.dc-foot-links a{color:#008BC7}
 .dc-h1{font-size:23px;line-height:1.28;color:#0f1418;padding:18px 28px 0}
 .dc-body{padding:13px 28px 0}
 .dc-p{margin:0 0 12px;font-size:14px;line-height:1.62;color:#47535e}
 .dc-ul{margin:0 0 12px;padding-left:19px;font-size:14px;line-height:1.62;color:#47535e}
-.dc-details{width:100%;border-collapse:collapse;border:1px solid #e7ecf0;margin:4px 0 14px}
-.dc-dt-l,.dc-dt-v{padding:8px 12px;font-size:12.5px;border-bottom:1px solid #eef1f4}
-.dc-dt-l{color:#6b7883;background:#fbfcfd}
-.dc-dt-v{color:#0f1418;font-weight:700;text-align:right}
+/* Borderless detail rows, hairline separated: uppercase label left, bold value right */
+.dc-details{width:100%;border-collapse:collapse;margin:8px 0 18px}
+.dc-dt-l,.dc-dt-v{padding:11px 0;border-bottom:1px solid #edf0f3;vertical-align:top}
+.dc-dt-l{font-size:11px;color:#8b98a4;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.dc-dt-v{font-size:12.5px;color:#0f1418;font-weight:700;text-align:right;padding-left:14px}
 .dc-details tr:last-child td{border-bottom:0}
-.dc-cta-wrap{text-align:center;padding:4px 28px}
-.dc-cta{display:inline-block;background:#17a2dc;color:#fff;font-size:13.5px;font-weight:700;padding:11px 22px;border-radius:6px}
-/* Bottom padding matters: on Category 1 there is no Help Centre block after
-   this, so the last line would otherwise sit flush against the footer rule. */
-.dc-sig{padding:8px 28px 22px;font-size:13.5px;line-height:1.6;color:#47535e}
-.dc-rule{height:1px;background:#e7ecf0;margin:18px 28px 0}
-.dc-help{padding:14px 28px 18px}
-.dc-help strong{font-size:14px;color:#0f1418}
-.dc-help p{margin:5px 0 0;font-size:13px;color:#47535e}
-.dc-help a{color:#17a2dc}
-.dc-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid #eef1f4;padding:13px 28px;flex-wrap:wrap}
-.dc-foot-links{display:flex;gap:14px}
-.dc-foot-links a{font-size:12px;color:#55616c;text-decoration:none}
-.dc-powered{font-size:11.5px;color:#7b8894}
-.dc-disclaimer{max-width:600px;margin:13px auto 0;font-size:11px;line-height:1.55;color:#8b98a4;text-align:center}
-.dc-social{display:flex;justify-content:center;align-items:center;gap:15px;margin-top:13px;color:#9aa6b1}
-.dc-social .so{width:16px;height:16px;fill:currentColor;display:block}
+
+.dc-cta-wrap{text-align:center;padding:12px 28px 4px}
+.dc-cta{display:inline-block;background:#1d8fd1;color:#fff;font-size:14px;font-weight:600;padding:12px 26px;border-radius:5px}
+.dc-cta-note{display:block;margin-top:12px;font-size:11.5px;color:#9aa6b1}
+
+/* Amber assistance note */
+.dc-note{display:flex;gap:10px;align-items:flex-start;margin:22px 28px 0;padding:13px 15px;background:#fdf6e9;border-radius:7px}
+.dc-note-i{flex:none;width:15px;height:15px;border-radius:50%;background:#e0a83a;color:#fff;font-size:9.5px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.dc-note p{margin:0;font-size:12.5px;line-height:1.55;color:#7a6432}
+
+.dc-sig{padding:22px 28px 26px;font-size:13.5px;line-height:1.7;color:#47535e}
+.dc-sig-off{color:#47535e}
+
+/* Footer: centred links, social row, then the disclaimer */
+.dc-foot{padding:20px 28px 24px;border-top:1px solid #eef1f4;text-align:center}
+.dc-powered{display:flex;align-items:center;justify-content:center;gap:5px;margin-bottom:13px;font-size:11px;color:#a8b3bd}
+.dc-powered .dc-mark-sm{height:14px;margin-left:0}
+.dc-foot-links{display:flex;justify-content:center;align-items:center;gap:9px;flex-wrap:wrap}
+.dc-foot-links a{font-size:11.5px;color:#7b8894;text-decoration:none}
+.dc-foot-links a+a::before{content:"·";margin-right:9px;color:#c2ccd5}
+.dc-disclaimer{margin:14px 0 0;font-size:10.5px;line-height:1.6;color:#a8b3bd;text-align:center}
+.dc-social{display:flex;justify-content:center;align-items:center;gap:13px;margin-top:14px;color:#b6c1cb}
+.dc-social .so{width:14px;height:14px;fill:currentColor;display:block}
 
 @media print{.side{display:none}.main{max-width:none;padding:0}.tpl{break-inside:avoid}}
 `;

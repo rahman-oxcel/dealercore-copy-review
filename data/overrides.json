@@ -1,4 +1,25 @@
 {
+  "Quotation Made": {
+    "reason": "The sheet's body was Ben's own note to himself (\"Remove this one as it's redundant to Quotation Booking\"), sitting where the copy should be. Retiring it is what that note actually asks for.",
+    "clearBody": true,
+    "notes": [
+      "Retired. Quotation Booking covers this event, so this template should be removed rather than rewritten."
+    ]
+  },
+  "External": {
+    "reason": "external.blade.php is an HTML shell that renders {!! $content !!} plus the dealer footer. It is infrastructure, not a notification, and has no copy of its own.",
+    "layout": true,
+    "notes": [
+      "Not a notification. This is the HTML shell that wraps content supplied by the calling code, so it has no copy and needs no subject."
+    ]
+  },
+  "System Notification": {
+    "reason": "system_notification.blade.php extends layouts.emails.system and renders $greeting, a $lines loop and an optional action button. It is Laravel's generic MailMessage harness, not a notification.",
+    "layout": true,
+    "notes": [
+      "Not a notification. This is the generic layout other notifications render through (greeting, body lines, action button), so it has no copy and needs no subject."
+    ]
+  },
   "New Lead Mail": {
     "reason": "Assigned the dealership signature in the review sheet, but the recipient is System. An internal alert should not carry an individual user's personal sign-off.",
     "signatureCategory": "Category 2",

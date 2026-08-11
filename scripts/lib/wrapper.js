@@ -12,14 +12,20 @@ const { row: socialRow } = require('./social.js');
 
 const { mark: dealerMark, HAS_LOGO } = require('./dealership.js');
 
+const SIGN_OFF = 'Regards';
+
 // Signatures drop the sending user's job title (the dealership name on that same
-// line stays) and the dealership logo, which belongs in the header only.
+// line stays) and the dealership logo, which belongs in the header only. The
+// DealerCore block is normalised to "Team DealerCore" with no support address:
+// the amber note already carries the contact details.
 function cleanSignature(lines) {
   return (lines || [])
     .map((l) => String(l).replace(/^\[User[’']s Role\]\s*[·|,-]?\s*/i, '').trim())
+    .map((l) => (/^the dealercore team$/i.test(l) ? 'Team DealerCore' : l))
     .filter((l) => l &&
       !/^\[User[’']s Role\]$/i.test(l) &&
-      !/^\[Dealership Logo\]$/i.test(l));
+      !/^\[Dealership Logo\]$/i.test(l) &&
+      !/^support@dealercore\.com\.au$/i.test(l));
 }
 
 const esc = (s) =>
@@ -70,6 +76,8 @@ function renderBody(lines) {
       break;
     }
     if (run.length >= 2) {
+      // Borderless rows separated by hairlines: uppercase label left, value
+      // bold and right-aligned, per the reference design.
       out.push(
         '<table class="dc-details"><tbody>' +
           run.map((r) =>
@@ -107,9 +115,6 @@ function renderEmail({ sigCategory, subject, body = [], signature = [], cta }) {
     ? (HAS_LOGO ? dealerMark() : '<span class="dc-brandname">[Dealership Name]</span>')
     : lockup();
 
-  const footerBrand = isCat1
-    ? '<span class="dc-powered">Powered by ' + lockup('dc-mark-sm') + '</span>'
-    : lockup('dc-mark-sm');
 
   return (
     '<div class="dc-stage">' +
@@ -118,30 +123,34 @@ function renderEmail({ sigCategory, subject, body = [], signature = [], cta }) {
         (subject ? '<h1 class="dc-h1">' + esc(subject) + '</h1>' : '') +
         '<div class="dc-body">' + renderBody(body) + '</div>' +
         (cta
-          ? '<div class="dc-cta-wrap"><span class="dc-cta">' + esc(cta) + '</span></div>'
+          ? '<div class="dc-cta-wrap"><span class="dc-cta">' + esc(cta) + '</span>' +
+              '<span class="dc-cta-note">Link expires in 30 days</span></div>'
           : '') +
+        // Amber assistance note, DealerCore mail only. A dealership signature
+        // already carries the sending user's email and mobile, so repeating them
+        // here would print the same contact details twice in one email.
+        (isCat1 ? '' :
+          '<div class="dc-note"><span class="dc-note-i">?</span><p>' +
+            'Questions or need assistance accessing your dashboard? Feel free to contact us at ' +
+            '0405 002 200 / support@dealercore.com.au' +
+          '</p></div>') +
         (cleanSignature(signature).length
-          ? '<div class="dc-sig">' +
+          ? '<div class="dc-sig"><div class="dc-sig-off">' + SIGN_OFF + '</div>' +
               cleanSignature(signature).map((l) => '<div>' + esc(l) + '</div>').join('') +
             '</div>'
           : '') +
-        // The Help Centre is a DealerCore property. On a dealership-branded email
-        // it would send the dealership's own customer to the wrong place, so it
-        // appears only on DealerCore's own mail.
-        (isCat1 ? '' :
-          '<div class="dc-rule"></div>' +
-          '<div class="dc-help"><strong>Need assistance?</strong>' +
-            '<p>Visit our <a>Help Centre</a> for guides, support articles and commonly asked questions.</p>' +
-          '</div>') +
-        '<div class="dc-foot">' + footerBrand +
+        '<div class="dc-foot">' +
+          // Customer-facing mail leads with the dealership's brand, so DealerCore
+          // appears only as the platform, in small type at the foot.
+          (isCat1 ? '<div class="dc-powered">Powered by ' + lockup('dc-mark-sm') + '</div>' : '') +
           '<span class="dc-foot-links">' +
             (isCat1 ? '' : '<a>Help Centre</a>') +
-            '<a>Privacy Policy</a><a>Terms and Conditions</a>' +
+            '<a>Privacy Policy</a><a>Terms</a>' +
           '</span>' +
+          socialRow() +
+          '<p class="dc-disclaimer">' + esc(isCat1 ? DISCLAIMER.category1 : DISCLAIMER.category2) + '</p>' +
         '</div>' +
       '</div>' +
-      '<p class="dc-disclaimer">' + esc(isCat1 ? DISCLAIMER.category1 : DISCLAIMER.category2) + '</p>' +
-      socialRow() +
     '</div>'
   );
 }
@@ -150,4 +159,4 @@ function renderEmail({ sigCategory, subject, body = [], signature = [], cta }) {
 const SIG_NAME = { '1': 'Dealership', '2': 'DealerCore' };
 const sigName = (cat) => SIG_NAME[String(cat).match(/[12]/) ? String(cat).match(/[12]/)[0] : ''] || 'Dealership';
 
-module.exports = { renderEmail, DISCLAIMER, cleanSignature, sigName };
+module.exports = { renderEmail, DISCLAIMER, cleanSignature, sigName, SIGN_OFF };

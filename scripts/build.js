@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const { renderEmail, cleanSignature, sigName, DISCLAIMER } = require('./lib/wrapper.js');
+const { renderEmail, cleanSignature, sigName, DISCLAIMER, SIGN_OFF } = require('./lib/wrapper.js');
 const { templateNotes } = require('./lib/why.js');
 const { defs: LOGO_DEFS, lockup } = require('./lib/logo.js');
 const { defs: SOCIAL_DEFS } = require('./lib/social.js');
@@ -49,7 +49,7 @@ const groupOf = (m) => (GROUPS.includes(m.n.channels.recipient) ? m.n.channels.r
 const model = news.map((n) => {
   const j = joinByTab.get(n.tab) || { status: 'NEW' };
   const o = j.oldId ? oldById.get(j.oldId) : null;
-  const status = n.redundant ? 'REDUNDANT' : !o ? 'NEW' : 'REVISED';
+  const status = n.isLayout ? 'LAYOUT' : n.redundant ? 'REDUNDANT' : !o ? 'NEW' : 'REVISED';
 
   // Ben's notes, plus anything the scan of the live template turned up that he
   // did not record. Both describe what the replacement fixes.
@@ -102,13 +102,44 @@ function pager(i, order) {
     '</div>';
 }
 
+// External and System Notification are Blade layouts that other notifications
+// render through. They stay listed so nobody wonders where they went, but there
+// is no copy to review and no subject to set.
+function layoutSection(m, i, order) {
+  const id = slug(m.n.tab);
+  return '<section class="tpl" id="' + id + '" data-status="' + m.status +
+    '" data-name="' + attr(m.n.tab.toLowerCase()) + '">' +
+    '<div class="crumb">' + esc(groupOf(m)) + '<span>' + i + ' of ' + (order.length - 1) + '</span></div>' +
+    '<div class="tpl-head"><h2>' + esc(m.n.tab) + '</h2>' +
+      '<span class="chip LAYOUT">Layout</span></div>' +
+    '<div class="meta">' +
+      (m.o ? '<span><b>File</b> <code>' + esc(m.o.filePath) + '</code></span>' : '') +
+    '</div>' +
+    '<div class="cols">' +
+      '<div><div class="pane old"><div class="pane-h">Old (as sent today)</div>' +
+        (m.o ? '<iframe sandbox srcdoc="' + attr(previewDoc(m.o.blade)) + '"></iframe>' : '') +
+      '</div></div>' +
+      '<div class="newcol"><div class="pane new"><div class="pane-h"><span>New</span></div>' +
+        '<div class="panel"><div class="chan">' +
+          '<p class="ruled"><b>Layout, not a notification.</b></p>' +
+          (m.notes.length ? '<ul class="layoutnote">' + m.notes.map((w) => '<li>' + esc(w) + '</li>').join('') + '</ul>' : '') +
+        '</div></div>' +
+      '</div></div>' +
+    '</div>' + pager(i, order) + '</section>';
+}
+
 function section(m, i, order) {
   const id = slug(m.n.tab);
   const c = m.n.channels;
 
+  // No separate subject field: the email renders the subject as its headline,
+  // so a labelled field above the preview would show the same text twice.
   const oldPane = '<div class="pane old"><div class="pane-h">Old (as sent today)</div>' +
     (m.o
-      ? '<iframe sandbox srcdoc="' + attr(previewDoc(m.o.blade)) + '"></iframe>'
+      // allow-same-origin only, so the parent can measure the rendered height
+      // and size the pane to it. Scripts stay blocked: without allow-scripts
+      // nothing inside the preview can execute.
+      ? '<iframe sandbox="allow-same-origin" srcdoc="' + attr(previewDoc(m.o.blade)) + '"></iframe>'
       : '<p class="none">No existing template. This one is new.</p>') +
     '</div>';
 
@@ -123,6 +154,12 @@ function section(m, i, order) {
         cta: /\b(review|accept|view|confirm|complete|sign|pay|update|book)\b/i.test(m.n.subject || '') ? 'Open in DealerCore' : '',
       })
     : '<p class="none">Marked redundant' + (m.n.redundantTo ? ' to “' + esc(m.n.redundantTo) + '”' : '') + '.</p>';
+
+  // A layout has no copy to show, so it gets a plain statement instead of the
+  // channel tabs, which would only offer three empty panels.
+  if (m.n.isLayout) {
+    return layoutSection(m, i, order);
+  }
 
   const newPane = '<div class="pane new">' +
     '<div class="pane-h"><span>New</span>' +
@@ -185,7 +222,7 @@ function guidelines(order) {
     const name = sigName(cat);
     return '<div class="box"><h3>' + esc(name) + ' email</h3>' +
       '<p class="g-scope">' + esc(scope) + '</p>' +
-      '<div class="g-sig">' +
+      '<div class="g-sig"><div>' + SIGN_OFF + '</div>' +
         sampleSignature(cat).map((l) => '<div>' + esc(l) + '</div>').join('') +
       '</div>' +
       '<p class="g-note">' + esc(cat === '1'
@@ -227,7 +264,7 @@ const nav = GROUPS.map((g) => {
       '" data-name="' + attr(m.n.tab.toLowerCase()) + '">' +
       '<span class="n">' + positionOf.get(m) + '</span>' +
       '<span class="nm">' + esc(m.n.tab) + '</span>' +
-      (m.status === 'NEW' || m.status === 'REDUNDANT' ? '<span class="dot ' + m.status + '"></span>' : '') +
+      (['NEW', 'REDUNDANT', 'LAYOUT'].includes(m.status) ? '<span class="dot ' + m.status + '"></span>' : '') +
       '</a>').join('') +
     '</details>';
 }).join('');
@@ -266,6 +303,28 @@ window.addEventListener('blur', function () {
 
 // One template on screen at a time. 100 sections in a single scroll is not
 // navigable, so the hash selects which one is shown.
+// Size both previews to whichever is taller, so neither side scrolls and the
+// two columns stay level. Panes are display:none until active, and a hidden
+// element measures zero, so this can only run once the section is showing.
+function fit(sec) {
+  if (!sec) return;
+  var frame = sec.querySelector('.pane.old iframe');
+  var stage = sec.querySelector('.panel[data-p="email"] .dc-stage');
+  var panels = sec.querySelectorAll('.panel');
+  if (!panels.length) return;
+
+  var newH = stage ? stage.scrollHeight : 0;
+  var oldH = 0;
+  try {
+    var doc = frame && frame.contentDocument;
+    if (doc && doc.body) oldH = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight) + 4;
+  } catch (e) { oldH = 0; }
+
+  var h = Math.max(newH, oldH, 320);
+  if (frame) frame.style.height = h + 'px';
+  panels.forEach(function (p) { p.style.height = h + 'px'; });
+}
+
 function show(id) {
   var target = document.getElementById(id);
   if (!target || !target.classList.contains('tpl')) { id = 'guidelines'; target = document.getElementById(id); }
@@ -289,6 +348,15 @@ function show(id) {
     }
   }
   window.scrollTo(0, 0);
+
+  // The srcdoc iframe may not have parsed yet the first time a section opens,
+  // so fit now and again on load.
+  fit(target);
+  var frame = target && target.querySelector('.pane.old iframe');
+  if (frame && !frame.dataset.fitted) {
+    frame.dataset.fitted = '1';
+    frame.addEventListener('load', function () { fit(target); });
+  }
 }
 
 // Channel tabs are per template, so scope the toggle to the section clicked.

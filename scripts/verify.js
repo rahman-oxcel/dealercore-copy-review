@@ -10,7 +10,9 @@ const $ = cheerio.load(html);
 
 const ids = $('section.tpl:not(.guide)').map((i, e) => $(e).attr('id')).get();
 const expected = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'new_templates.json'), 'utf8')).templates;
-const withBody = expected.filter((t) => t.body.length).length;
+// Layouts render a plain statement instead of an email, and a retired template
+// has no body at all, so neither contributes an email preview.
+const withBody = expected.filter((t) => t.body.length && !t.isLayout).length;
 const withSms = expected.filter((t) => t.sms.length).length;
 
 const checks = {

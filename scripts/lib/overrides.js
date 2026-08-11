@@ -7,6 +7,23 @@ const path = require('path');
 const file = path.join(__dirname, '..', '..', 'data', 'overrides.json');
 const rules = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : {};
 
+// Rewritten subject lines live in their own file: there are 60-odd of them and
+// they are a copy decision, separate from the structural corrections above.
+const subjFile = path.join(__dirname, '..', '..', 'data', 'subjects.json');
+const subjects = fs.existsSync(subjFile) ? JSON.parse(fs.readFileSync(subjFile, 'utf8')) : {};
+
+function applySubjects(templates) {
+  const done = [];
+  templates.forEach((t) => {
+    const next = subjects[t.tab];
+    if (!next || t.isLayout || next === t.subject) return;
+    done.push({ tab: t.tab, from: t.subject, to: next });
+    t.why.push('Subject line updated (was "' + t.subject + '").');
+    t.subject = next;
+  });
+  return done;
+}
+
 // Anchor on the label text, not a row number, so the fix survives the copy
 // shifting up or down in the sheet.
 function indexOfLabel(lines, label, occurrence) {
@@ -36,6 +53,24 @@ function applyOverrides(templates) {
   templates.forEach((t) => {
     const rule = rules[t.tab];
     if (!rule) return;
+
+    // Infrastructure, not a notification: no copy, no subject, nothing to review.
+    if (rule.layout) {
+      t.isLayout = true;
+      t.subject = '';
+      // Ben's copy notes ("no spelling issues found") are meaningless against a
+      // layout, so drop them and let the override note stand alone.
+      t.why = [];
+      applied.push({ tab: t.tab, ok: true, what: 'marked as layout, not a notification' });
+    }
+
+    // Retiring a template: clearing the body is what drives the REDUNDANT state,
+    // and `redundant` was computed before overrides ran, so set it here too.
+    if (rule.clearBody && t.body.length) {
+      applied.push({ tab: t.tab, ok: true, what: 'body cleared, marked redundant' });
+      t.body = [];
+      t.redundant = true;
+    }
 
     if (rule.signatureCategory && rule.signatureCategory !== t.sigCategory) {
       const block = signatureFor(templates, rule.signatureCategory);
@@ -81,4 +116,4 @@ function applyOverrides(templates) {
   return applied;
 }
 
-module.exports = { applyOverrides, rules };
+module.exports = { applyOverrides, applySubjects, rules };

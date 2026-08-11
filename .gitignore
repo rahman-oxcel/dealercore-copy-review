@@ -8,6 +8,7 @@ new_templates.json
 join_map.json
 qa_old.json
 audit.json
+review_new.json
 data/issues.json
 assets/
 
@@ -15,6 +16,10 @@ assets/
 # with the link. In a public repo that would publish the whole review in the
 # clear and defeat the point of encrypting the page. Local dev aid only.
 CLAUDE.md
+
+# 63 customer-facing subject lines: deliverable copy, not configuration.
+# data/overrides.json stays tracked because it holds only placeholder names.
+data/subjects.json
 
 node_modules/
 package-lock.json
