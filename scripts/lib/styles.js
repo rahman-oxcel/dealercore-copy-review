@@ -92,6 +92,8 @@ code{font-family:Consolas,"SFMono-Regular",monospace;font-size:12.5px;background
 .chip.UNCHANGED{background:#f1f4f7;color:#5c6a77;border-color:#dde4ea}
 .chip.REDUNDANT{background:#fdeceb;color:#8c2418;border-color:#f2ccc6}
 .chip.LAYOUT{background:#f2f0f7;color:#544273;border-color:#ddd6ea}
+.chip.ATTACH{display:inline-flex;align-items:center;gap:5px;background:#fdf6e9;color:#8a6516;border-color:#f0e0bf}
+.chip.ATTACH .ci{width:11px;height:11px;fill:currentColor}
 .dot.LAYOUT{background:#8b7aa8}
 .layoutnote{margin:10px 0 0;padding-left:17px;font-size:13.5px;color:#5b6873}
 .layoutnote li{margin-bottom:4px}
@@ -126,7 +128,11 @@ code{font-family:Consolas,"SFMono-Regular",monospace;font-size:12.5px;background
 @media(max-width:1060px){.row{grid-template-columns:1fr}}
 .box{border:1px solid #e4eaef;border-radius:9px;padding:13px 15px}
 .box h3{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:#8b98a4;margin-bottom:8px}
-.bubble{background:#f6fbfe;border:1px solid #d3e3ee;border-radius:13px;padding:9px 13px;font-size:13.5px;line-height:1.55}
+.bubble{background:#f6fbfe;border:1px solid #d3e3ee;border-radius:13px;padding:12px 15px;font-size:13.5px;line-height:1.55;max-width:520px}
+.sms-g{margin-bottom:9px}
+.sms-b{margin-bottom:11px}
+.sms-s{color:#5b6873}
+.sms-s div{line-height:1.5}
 .to{font-size:11.5px;color:#8b98a4;margin-top:7px;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
 .ruled{font-size:13.5px;color:#5b6873;margin:0}
 .push{background:#f3f5f7;border:1px solid #e0e6ea;border-radius:11px;padding:10px 13px}
@@ -163,22 +169,21 @@ code{font-family:Consolas,"SFMono-Regular",monospace;font-size:12.5px;background
 .dc-h1{font-size:23px;line-height:1.28;color:#0f1418;padding:18px 28px 0}
 .dc-body{padding:13px 28px 0}
 .dc-p{margin:0 0 12px;font-size:14px;line-height:1.62;color:#47535e}
-.dc-ul{margin:0 0 12px;padding-left:19px;font-size:14px;line-height:1.62;color:#47535e}
-/* Borderless detail rows, hairline separated: uppercase label left, bold value right */
+.dc-ul{margin:4px 0 16px;padding-left:20px;font-size:14px;line-height:1.62;color:#47535e}
+.dc-ul li{margin-bottom:7px;padding-left:3px}
+.dc-ul li:last-child{margin-bottom:0}
+.dc-ul li::marker{color:#a8b3bd}
+/* Reference style: small uppercase label left, value bold and right-aligned,
+   hairline rule between rows. */
 .dc-details{width:100%;border-collapse:collapse;margin:8px 0 18px}
 .dc-dt-l,.dc-dt-v{padding:11px 0;border-bottom:1px solid #edf0f3;vertical-align:top}
-.dc-dt-l{font-size:11px;color:#8b98a4;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
-.dc-dt-v{font-size:12.5px;color:#0f1418;font-weight:700;text-align:right;padding-left:14px}
+.dc-dt-l{font-size:11px;color:#8b98a4;text-transform:uppercase;letter-spacing:.06em;font-weight:600;padding-right:16px}
+.dc-dt-v{font-size:12.5px;color:#0f1418;font-weight:700;text-align:right}
 .dc-details tr:last-child td{border-bottom:0}
 
 .dc-cta-wrap{text-align:center;padding:12px 28px 4px}
 .dc-cta{display:inline-block;background:#1d8fd1;color:#fff;font-size:14px;font-weight:600;padding:12px 26px;border-radius:5px}
 .dc-cta-note{display:block;margin-top:12px;font-size:11.5px;color:#9aa6b1}
-
-/* Amber assistance note */
-.dc-note{display:flex;gap:10px;align-items:flex-start;margin:22px 28px 0;padding:13px 15px;background:#fdf6e9;border-radius:7px}
-.dc-note-i{flex:none;width:15px;height:15px;border-radius:50%;background:#e0a83a;color:#fff;font-size:9.5px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:1px}
-.dc-note p{margin:0;font-size:12.5px;line-height:1.55;color:#7a6432}
 
 .dc-sig{padding:22px 28px 26px;font-size:13.5px;line-height:1.7;color:#47535e}
 .dc-sig-off{color:#47535e}

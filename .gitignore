@@ -17,9 +17,11 @@ assets/
 # clear and defeat the point of encrypting the page. Local dev aid only.
 CLAUDE.md
 
-# 63 customer-facing subject lines: deliverable copy, not configuration.
-# data/overrides.json stays tracked because it holds only placeholder names.
+# Deliverable copy, not configuration. subjects.json holds 63 customer-facing
+# subject lines; overrides.json began as placeholder-only corrections but now
+# carries written email copy too (Verification's body, lead fields, greetings).
 data/subjects.json
+data/overrides.json
 
 node_modules/
 package-lock.json

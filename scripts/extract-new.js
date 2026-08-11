@@ -180,10 +180,14 @@ const templates = wb.SheetNames.filter((n) => !META.has(n)).map((name) => {
 });
 
 // Corrections to known errors in the sheet, kept out of the extractor itself.
-const { applyOverrides, applySubjects } = require('./lib/overrides.js');
+const { applyOverrides, applySubjects, normaliseGreetings, removeCallToActions } = require('./lib/overrides.js');
 const patched = applyOverrides(templates);
 const subjed = applySubjects(templates);
+const greeted = normaliseGreetings(templates);
+const decalled = removeCallToActions(templates);
+if (decalled.length) console.log('--- call-to-actions removed: ' + decalled.length + ' templates ---');
 if (subjed.length) console.log('--- subject lines rewritten: ' + subjed.length + ' ---');
+if (greeted.length) console.log('--- greeting commas added: ' + greeted.length + ' (' + greeted.join(', ') + ') ---');
 if (patched.length) {
   console.log('--- overrides applied ---');
   patched.forEach((p) => console.log('  ' + (p.ok ? (p.skipped ? 'skip' : ' ok ') : 'FAIL') + '  ' + p.tab + ': ' + p.what));

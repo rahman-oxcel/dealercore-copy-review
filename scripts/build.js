@@ -62,7 +62,14 @@ const model = news.map((n) => {
     }
   });
 
-  return { n, o, join: j, status, notes: [...new Set(notes)] };
+  // Anything the dev team has to physically attach to the send. Flagged because
+  // it is work beyond the copy: the file has to be generated and bound in.
+  const text = [n.subject, ...n.body].join('\n');
+  const hasAttachment = /\battach(ed|ment|ments)\b/i.test(text) ||
+    /\[Attachment[^\]]*\]/i.test(text) ||
+    /please find (the )?(following|below)/i.test(text);
+
+  return { n, o, join: j, status, hasAttachment, notes: [...new Set(notes)] };
 });
 
 // Reading order follows the sidebar grouping, so the numbers run 1..100 straight
@@ -73,9 +80,28 @@ model.sort((a, b) => GROUPS.indexOf(groupOf(a)) - GROUPS.indexOf(groupOf(b)));
 
 // The page goes straight to the dev team as an instruction, so these state the
 // decision without arguing for it.
+// Messages follow the same shape as the emails: greeting, body, sign-off.
+// Ben wrote the SMS as a single run of text, so the greeting is split back out
+// and the sign-off added to match the template's signature category.
 function smsPanel(m) {
   if (!m.n.sms.length) return '<p class="ruled">Not required for this template.</p>';
-  return '<div class="bubble">' + esc(m.n.sms.join(' ')) + '</div>' +
+
+  const text = m.n.sms.join(' ').trim();
+  const g = text.match(/^((?:Hi|Hello|Dear)\s+\[[^\]]+\]\s*,)\s*(.*)$/i);
+  const greeting = g ? g[1].trim() : '';
+  // Ben wrote the greeting and body as one sentence ("Hi [X], great news!").
+  // Once the greeting moves to its own line the body has to start a sentence.
+  let body = g ? g[2].trim() : text;
+  if (g && /^[a-z]/.test(body)) body = body[0].toUpperCase() + body.slice(1);
+
+  const isCat1 = /1/.test(String(m.n.sigCategory));
+  const signoff = isCat1 ? [SIGN_OFF, "[User's Name]", '[Dealership Name]'] : [SIGN_OFF, 'Team DealerCore'];
+
+  return '<div class="bubble">' +
+      (greeting ? '<div class="sms-g">' + esc(greeting) + '</div>' : '') +
+      '<div class="sms-b">' + esc(body) + '</div>' +
+      '<div class="sms-s">' + signoff.map((l) => '<div>' + esc(l) + '</div>').join('') + '</div>' +
+    '</div>' +
     '<div class="to">To ' + esc(m.n.channels.recipient || '—') + '</div>';
 }
 
@@ -200,6 +226,7 @@ function section(m, i, order) {
       (m.status === 'NEW' || m.status === 'REDUNDANT'
         ? '<span class="chip ' + m.status + '">' + m.status + '</span>' : '') +
       (m.join.status === 'RENAMED' ? '<span class="chip soft">was “' + esc(m.join.oldTitle) + '”</span>' : '') +
+      (m.hasAttachment ? '<span class="chip ATTACH">' + icon('email') + 'Attachment</span>' : '') +
       '</div>' +
     meta +
     '<div class="cols"><div>' + oldPane + '</div><div class="newcol">' + newPane + '</div></div>' +

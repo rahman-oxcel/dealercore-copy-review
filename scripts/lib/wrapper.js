@@ -46,11 +46,45 @@ const DISCLAIMER = {
 
 // A line that reads as a "Label: value" pair becomes a detail row, matching the
 // bordered table in the reference design.
+// The leading bullet is optional: Ben typed some detail blocks as bulleted
+// "Label: value" lines and others as plain ones. Both are the same content and
+// render the same way, so the sheet's typing style doesn't leak into the design.
 const asDetailRow = (line) => {
-  const m = String(line).match(/^([A-Z][A-Za-z /()'-]{2,34}?)\s*:\s*(.+)$/);
+  const m = String(line).match(/^[•·▪‣●]?\s*([A-Z][A-Za-z /()'’-]{2,34}?)\s*:\s*(.+)$/);
   if (!m) return null;
   if (/^(subject|hi|hello|dear)$/i.test(m[1].trim())) return null;
   return { label: m[1].trim(), value: m[2].trim() };
+};
+
+// Some tabs pack a whole detail block into one cell with no line breaks
+// ("Applicant Name: X Residency Status: Y Loan Amount: Z"). Split it back into
+// rows by finding each "Label:" and taking everything up to the next one.
+const LABEL = /([A-Z][A-Za-z '’&/()-]{1,34}?):\s+/g;
+// Returns { lead, rows }: `lead` is any prose before the detail pairs begin,
+// since some cells run a sentence straight into the data ("...key details for
+// the Contract of Sale: Model Year: X Model Name: Y ...").
+const inlineRows = (line) => {
+  const s = String(line).trim();
+  const found = [];
+  let m;
+  const re = new RegExp(LABEL.source, 'g');
+  while ((m = re.exec(s))) found.push({ label: m[1].trim(), start: m.index, end: re.lastIndex });
+  if (found.length < 2) return null;
+
+  const all = found.map((it, k) => ({
+    label: it.label,
+    start: it.start,
+    value: s.slice(it.end, k + 1 < found.length ? found[k + 1].start : s.length).trim(),
+  }));
+  // A label with no value is the sentence's own colon introducing the block.
+  const rows = all.filter((r) => r.value);
+  if (rows.length < 2) return null;
+
+  const lead = s.slice(0, rows[0].start).trim();
+  // Guard against chopping ordinary prose: the lead must read as an
+  // introduction, not swallow most of the line.
+  if (lead && !/[:：]$/.test(lead)) return null;
+  return { lead, rows: rows.map(({ label, value }) => ({ label, value })) };
 };
 
 // Some tabs put the label and its value on consecutive rows ("Mobile:" then
@@ -60,6 +94,11 @@ const splitRow = (lines, i) => {
   const next = String(lines[i + 1] || '').trim();
   if (!/:$/.test(label) || label.length > 46) return null;
   if (!next || /:$/.test(next)) return null;
+  // A sentence ending in a colon is a heading introducing what follows
+  // ("Details are as follows:"), not a field label. Pairing it with the next
+  // line swallowed the heading and orphaned the first list item.
+  if (label.split(/\s+/).length > 4) return null;
+  if (/^[•·▪‣●*-]\s+/.test(next)) return null;
   return { label: label.replace(/:$/, ''), value: next };
 };
 
@@ -68,7 +107,18 @@ function renderBody(lines) {
   let i = 0;
   while (i < lines.length) {
     const run = [];
+    const runStart = i;
     while (i < lines.length) {
+      const packed = inlineRows(lines[i]);
+      if (packed) {
+        // A lead sentence has to be emitted before the table, so flush any rows
+        // already gathered and let the next pass handle this line.
+        if (packed.lead && run.length) break;
+        if (packed.lead) out.push('<p class="dc-p">' + esc(packed.lead) + '</p>');
+        packed.rows.forEach((r) => run.push(r));
+        i++;
+        continue;
+      }
       const same = asDetailRow(lines[i]);
       if (same) { run.push(same); i++; continue; }
       const split = splitRow(lines, i);
@@ -87,7 +137,15 @@ function renderBody(lines) {
       );
       continue;
     }
-    if (run.length === 1) { out.push('<p class="dc-p">' + esc(lines[i - 1]) + '</p>'); continue; }
+    // A single row isn't a table. Rewind and let the line render normally:
+    // a split row consumes two lines, so lines[i-1] was the wrong one and the
+    // label line was being dropped.
+    if (run.length === 1) {
+      i = runStart;
+      out.push('<p class="dc-p">' + esc(lines[i]) + '</p>');
+      i++;
+      continue;
+    }
 
     const line = lines[i];
     if (/^[•·▪‣●*-]\s+/.test(line)) {
@@ -126,14 +184,6 @@ function renderEmail({ sigCategory, subject, body = [], signature = [], cta }) {
           ? '<div class="dc-cta-wrap"><span class="dc-cta">' + esc(cta) + '</span>' +
               '<span class="dc-cta-note">Link expires in 30 days</span></div>'
           : '') +
-        // Amber assistance note, DealerCore mail only. A dealership signature
-        // already carries the sending user's email and mobile, so repeating them
-        // here would print the same contact details twice in one email.
-        (isCat1 ? '' :
-          '<div class="dc-note"><span class="dc-note-i">?</span><p>' +
-            'Questions or need assistance accessing your dashboard? Feel free to contact us at ' +
-            '0405 002 200 / support@dealercore.com.au' +
-          '</p></div>') +
         (cleanSignature(signature).length
           ? '<div class="dc-sig"><div class="dc-sig-off">' + SIGN_OFF + '</div>' +
               cleanSignature(signature).map((l) => '<div>' + esc(l) + '</div>').join('') +
