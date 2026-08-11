@@ -7,7 +7,20 @@
 // NOTE: reconstructed from an image, not from the production Blade layout.
 // If the real layout file surfaces, it should replace this.
 
-const { lockup, emblem } = require('./logo.js');
+const { lockup } = require('./logo.js');
+const { row: socialRow } = require('./social.js');
+
+const { mark: dealerMark, HAS_LOGO } = require('./dealership.js');
+
+// Signatures drop the sending user's job title (the dealership name on that same
+// line stays) and the dealership logo, which belongs in the header only.
+function cleanSignature(lines) {
+  return (lines || [])
+    .map((l) => String(l).replace(/^\[User[’']s Role\]\s*[·|,-]?\s*/i, '').trim())
+    .filter((l) => l &&
+      !/^\[User[’']s Role\]$/i.test(l) &&
+      !/^\[Dealership Logo\]$/i.test(l));
+}
 
 const esc = (s) =>
   String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -24,7 +37,6 @@ const DISCLAIMER = {
     'message. If you were not expecting this email, please contact the dealership directly.',
 };
 
-const SOCIALS = ['in', 'f', 'ig', 'X', 'yt'];
 
 // A line that reads as a "Label: value" pair becomes a detail row, matching the
 // bordered table in the reference design.
@@ -89,9 +101,10 @@ function renderEmail({ sigCategory, subject, body = [], signature = [], cta }) {
 
   // Customer-facing mail leads with the dealership's own brand; DealerCore
   // appears only as the platform, in the footer.
+  // The logo carries the dealership's identity on its own, so the name is shown
+  // only when no logo has been set up.
   const brand = isCat1
-    ? '<span class="dc-logo dc-logo-dealer">LOGO</span>' +
-      '<span class="dc-brandname">[Dealership Name]</span>'
+    ? (HAS_LOGO ? dealerMark() : '<span class="dc-brandname">[Dealership Name]</span>')
     : lockup();
 
   const footerBrand = isCat1
@@ -107,23 +120,34 @@ function renderEmail({ sigCategory, subject, body = [], signature = [], cta }) {
         (cta
           ? '<div class="dc-cta-wrap"><span class="dc-cta">' + esc(cta) + '</span></div>'
           : '') +
-        (signature.length
+        (cleanSignature(signature).length
           ? '<div class="dc-sig">' +
-              signature.map((l) => '<div>' + esc(l) + '</div>').join('') +
+              cleanSignature(signature).map((l) => '<div>' + esc(l) + '</div>').join('') +
             '</div>'
           : '') +
-        '<div class="dc-rule"></div>' +
-        '<div class="dc-help"><strong>Need assistance?</strong>' +
-          '<p>Visit our <a>Help Centre</a> for guides, support articles and commonly asked questions.</p>' +
-        '</div>' +
+        // The Help Centre is a DealerCore property. On a dealership-branded email
+        // it would send the dealership's own customer to the wrong place, so it
+        // appears only on DealerCore's own mail.
+        (isCat1 ? '' :
+          '<div class="dc-rule"></div>' +
+          '<div class="dc-help"><strong>Need assistance?</strong>' +
+            '<p>Visit our <a>Help Centre</a> for guides, support articles and commonly asked questions.</p>' +
+          '</div>') +
         '<div class="dc-foot">' + footerBrand +
-          '<span class="dc-foot-links"><a>Help Centre</a><a>Privacy Policy</a><a>Terms and Conditions</a></span>' +
+          '<span class="dc-foot-links">' +
+            (isCat1 ? '' : '<a>Help Centre</a>') +
+            '<a>Privacy Policy</a><a>Terms and Conditions</a>' +
+          '</span>' +
         '</div>' +
       '</div>' +
       '<p class="dc-disclaimer">' + esc(isCat1 ? DISCLAIMER.category1 : DISCLAIMER.category2) + '</p>' +
-      '<div class="dc-social">' + SOCIALS.map((s) => '<span>' + s + '</span>').join('') + '</div>' +
+      socialRow() +
     '</div>'
   );
 }
 
-module.exports = { renderEmail, DISCLAIMER };
+// "Category 1/2" is sheet jargon. These are the names shown on the page.
+const SIG_NAME = { '1': 'Dealership', '2': 'DealerCore' };
+const sigName = (cat) => SIG_NAME[String(cat).match(/[12]/) ? String(cat).match(/[12]/)[0] : ''] || 'Dealership';
+
+module.exports = { renderEmail, DISCLAIMER, cleanSignature, sigName };

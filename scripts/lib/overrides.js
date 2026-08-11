@@ -20,12 +20,34 @@ function indexOfLabel(lines, label, occurrence) {
   return -1;
 }
 
+// Copy the signature from a template already in the target category rather than
+// retyping it, so a flipped template can never drift from the real block.
+function signatureFor(templates, category) {
+  const n = String(category).match(/[12]/);
+  const donor = templates.find(
+    (t) => !rules[t.tab] && n && new RegExp(n[0]).test(t.sigCategory) && (t.signature || []).length
+  );
+  return donor ? donor.signature.slice() : null;
+}
+
 function applyOverrides(templates) {
   const applied = [];
 
   templates.forEach((t) => {
     const rule = rules[t.tab];
     if (!rule) return;
+
+    if (rule.signatureCategory && rule.signatureCategory !== t.sigCategory) {
+      const block = signatureFor(templates, rule.signatureCategory);
+      if (!block) {
+        applied.push({ tab: t.tab, ok: false, what: 'no donor signature for ' + rule.signatureCategory });
+      } else {
+        applied.push({ tab: t.tab, ok: true,
+          what: 'signature ' + t.sigCategory + ' -> ' + rule.signatureCategory });
+        t.sigCategory = rule.signatureCategory;
+        t.signature = block;
+      }
+    }
 
     (rule.setAfterLabel || []).forEach((r) => {
       const i = indexOfLabel(t.body, r.label, r.occurrence || 1);

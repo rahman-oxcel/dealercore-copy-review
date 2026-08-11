@@ -1,6 +1,14 @@
 {
+  "New Lead Mail": {
+    "reason": "Assigned the dealership signature in the review sheet, but the recipient is System. An internal alert should not carry an individual user's personal sign-off.",
+    "signatureCategory": "Category 2",
+    "notes": [
+      "Moved to the DealerCore signature. This is an internal system alert, not a message from a dealership user to an external contact, so a personal sign-off does not belong on it."
+    ]
+  },
   "Broker Finance Assign": {
-    "reason": "Placeholder errors in the review sheet: the mobile fields were doubled, Employer and Bank Name both repeated the customer's first name, and ACN was listed twice with the second holding a government reference number.",
+    "reason": "Placeholder errors in the review sheet: the mobile fields were doubled, Employer and Bank Name both repeated the customer's first name, and ACN was listed twice with the second holding a government reference number. Also assigned the dealership signature despite going to Staff.",
+    "signatureCategory": "Category 2",
     "setAfterLabel": [
       { "label": "Mobile:", "occurrence": 1, "value": "[Mobile Number]" },
       { "label": "Alternate Mobile:", "occurrence": 1, "value": "[Alternate Mobile Number]" },
@@ -12,7 +20,8 @@
       { "label": "ACN:", "occurrence": 2, "value": "Govt Ref Number:" }
     ],
     "notes": [
-      "Corrected the placeholders in the applicant details: Mobile and Alternate Mobile were each doubled up, Employer and Bank Name both repeated [Customer First Name], Company Name pointed at [Dealership Name], and ACN appeared twice with the second one holding a government reference number."
+      "Corrected the placeholders in the applicant details: Mobile and Alternate Mobile were each doubled up, Employer and Bank Name both repeated [Customer First Name], Company Name pointed at [Dealership Name], and ACN appeared twice with the second one holding a government reference number.",
+      "Moved to the DealerCore signature. This goes to internal staff rather than an external contact, so a personal sign-off does not belong on it."
     ]
   }
 }

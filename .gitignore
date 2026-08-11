@@ -11,6 +11,11 @@ audit.json
 data/issues.json
 assets/
 
+# Holds the Google Sheets URL for Ben's workbook, which is readable by anyone
+# with the link. In a public repo that would publish the whole review in the
+# clear and defeat the point of encrypting the page. Local dev aid only.
+CLAUDE.md
+
 node_modules/
 package-lock.json
 site/

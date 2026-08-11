@@ -17,6 +17,10 @@ const MARKERS = [
   ['sms', /^NEW\s*—\s*SMS Version/i],
   ['why', /^Why This Changed/i],
   ['sig', /^Signature to Use/i],
+  // Trailing dev-reference table on 19 tabs. It has no marker above it, so
+  // without this boundary the signature section runs to the end of the sheet
+  // and swallows it.
+  ['devlinks', /^Buttons?\s*&\s*Links/i],
 ];
 
 // ---------- reference tabs ----------
@@ -170,6 +174,7 @@ const templates = wb.SheetNames.filter((n) => !META.has(n)).map((name) => {
     why: section('why').flatMap((v) => v.split('\n').map((x) => x.replace(/^•\s*/, '').trim()).filter(Boolean)),
     signatureNote: sigNote,
     signature: sigBlock,
+    devLinks: section('devlinks'),
     hasOldInSheet: section('old').length > 0,
   };
 });
