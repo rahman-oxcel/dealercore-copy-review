@@ -1,5 +1,5 @@
 // Assemble the deliverable: for every template, what goes out today next to what
-// replaces it, plus SMS and push. One self-contained file, no dependencies.
+// replaces it, plus SMS and the in-app notification. One self-contained file.
 const fs = require('fs');
 const path = require('path');
 
@@ -24,11 +24,18 @@ const qaById = qa.reduce((a, f) => ((a[f.id] = a[f.id] || []).push(f), a), {});
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const attr = (s) => esc(s).replace(/"/g, '&quot;');
 const slug = (s) => 't-' + String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+// A renamed template keeps its sheet tab as the join key and the anchor; only the
+// label changes. Search matches either, so an old name still finds it.
+const shown = (n) => n.displayName || n.tab;
 
 // Blade asset helpers resolve at render time, so in a static preview they would
 // show as broken images. Swap them for a neutral placeholder instead.
 function previewDoc(blade) {
   const body = blade
+    // Blade strips {{-- --}} comments before the mail ever renders, so leaving
+    // them in would put text at the top of the preview that no recipient sees.
+    // 76 of the 90 live templates carry at least one.
+    .replace(/\{\{--[\s\S]*?--\}\}/g, '')
     .replace(/<script[\s\S]*?<\/script>/gi, '')
     .replace(/<img[^>]*>/gi, (tag) =>
       /\{\{|\{!!/.test(tag)
@@ -44,7 +51,15 @@ function previewDoc(blade) {
 // Recipient is a more useful grouping than the sheet's loose categories, whose
 // "Others" bucket is a catch-all.
 const GROUPS = ['Customer', 'Dealer', 'Staff', 'System'];
-const groupOf = (m) => (GROUPS.includes(m.n.channels.recipient) ? m.n.channels.recipient : 'System');
+// A consignor is a kind of customer, so they sit in that group rather than
+// adding a fifth heading for six templates.
+const IN_GROUP = { Consignor: 'Customer', Seller: 'Customer' };
+// Nobody in these two groups has a DealerCore account.
+const NO_LOGIN = ['Customer', 'Consignor', 'Seller'];
+const groupOf = (m) => {
+  const r = IN_GROUP[m.n.channels.recipient] || m.n.channels.recipient;
+  return GROUPS.includes(r) ? r : 'System';
+};
 
 const model = news.map((n) => {
   const j = joinByTab.get(n.tab) || { status: 'NEW' };
@@ -69,7 +84,7 @@ const model = news.map((n) => {
     /\[Attachment[^\]]*\]/i.test(text) ||
     /please find (the )?(following|below)/i.test(text);
 
-  return { n, o, join: j, status, hasAttachment, notes: [...new Set(notes)] };
+  return { n, o, join: j, status, hasAttachment, flagged: !!n.flagged, flagNote: n.flagNote || '', noteBar: n.noteBar || '', notes: [...new Set(notes)] };
 });
 
 // Reading order follows the sidebar grouping, so the numbers run 1..100 straight
@@ -105,11 +120,52 @@ function smsPanel(m) {
     '<div class="to">To ' + esc(m.n.channels.recipient || '—') + '</div>';
 }
 
-function pushPanel(m) {
+// A sentence that is only courtesy carries nothing in a notification panel.
+const COURTESY = /^(?:thank(?:s| you)\b[^.!?]*|welcome to dealercore[^.!?]*|congratulations\b[^.!?]*|we(?:'|\u2019)?re (?:excited|delighted) to[^.!?]*)[.!?]?$/i;
+
+// These introduce the fact rather than being it, so they come off the front.
+const WIND_UP = [
+  /^we(?:'|\u2019)?re (?:thrilled|delighted|pleased|excited|happy) to (?:inform you that|let you know that|confirm that|confirm|share that)\s*/i,
+  /^we(?:'|\u2019)?re (?:writing|getting in touch) (?:to (?:confirm|let you know) that|with|about)\s*/i,
+  /^we are writing to confirm\s*/i,
+  /^(?:great|good) news[!,.]?\s*/i,
+  /^congratulations[!,.]?\s*/i,
+  /^(?:this is |just )?a friendly reminder that\s*/i,
+  /^just a heads up[:,]?\s*/i,
+  /^this (?:email )?confirms that\s*/i,
+];
+
+// A labelled row is data, not a sentence, and reads as noise in a panel.
+const DETAIL_ROW = /^[\u2022\u00b7-]?\s*[A-Z][A-Za-z /()\u2019'-]{2,40}\s*:\s*\S/;
+
+// The email is the source, so the notification can never drift from it.
+function inAppBody(n) {
+  const lines = n.body.filter((l) => {
+    const s = String(l).trim();
+    return s && !/^(hi|hello|dear)\b/i.test(s) && !DETAIL_ROW.test(s);
+  });
+  for (const line of lines) {
+    const sentences = String(line).trim().split(/(?<=[.!?])\s+/);
+    for (let s of sentences) {
+      if (COURTESY.test(s.trim())) continue;
+      WIND_UP.forEach((re) => { s = s.replace(re, ""); });
+      s = s.trim();
+      // A line ending in a colon introduces something that is not coming.
+      if (s.length < 12 || /[:;]$/.test(s)) continue;
+      if (s.length > 130) s = s.slice(0, 127).replace(/\s+\S*$/, "") + "...";
+      return s.charAt(0).toUpperCase() + s.slice(1);
+    }
+  }
+  return '';
+}
+
+// DealerCore is web only, so this is the dashboard notification, not an
+// OS-level push. Copy mirrors the SMS: it was never written separately.
+function inAppPanel(m) {
   if (!m.n.channels.push) return '<p class="ruled">Not required for this template.</p>';
   return '<div class="push"><span class="tx">' +
-      '<span class="ti">' + esc(m.n.subject || m.n.tab) + '</span>' +
-      '<span class="bd">' + esc(m.n.sms.join(' ')) + '</span>' +
+      '<span class="ti">' + esc(m.n.subject || shown(m.n)) + '</span>' +
+      '<span class="bd">' + esc(m.n.inApp || inAppBody(m.n)) + '</span>' +
     '</span></div>' +
     '<div class="to">To ' + esc(m.n.channels.recipient || '—') + '</div>';
 }
@@ -134,9 +190,9 @@ function pager(i, order) {
 function layoutSection(m, i, order) {
   const id = slug(m.n.tab);
   return '<section class="tpl" id="' + id + '" data-status="' + m.status +
-    '" data-name="' + attr(m.n.tab.toLowerCase()) + '">' +
+    '" data-name="' + attr((shown(m.n) + ' ' + m.n.tab).toLowerCase()) + '">' +
     '<div class="crumb">' + esc(groupOf(m)) + '<span>' + i + ' of ' + (order.length - 1) + '</span></div>' +
-    '<div class="tpl-head"><h2>' + esc(m.n.tab) + '</h2>' +
+    '<div class="tpl-head"><h2>' + esc(shown(m.n)) + '</h2>' +
       '<span class="chip LAYOUT">Layout</span></div>' +
     '<div class="meta">' +
       (m.o ? '<span><b>File</b> <code>' + esc(m.o.filePath) + '</code></span>' : '') +
@@ -177,7 +233,13 @@ function section(m, i, order) {
         subject: m.n.subject,
         body: m.n.body,
         signature: m.n.signature,
-        cta: /\b(review|accept|view|confirm|complete|sign|pay|update|book)\b/i.test(m.n.subject || '') ? 'Open in DealerCore' : '',
+        // Only offered to someone who can actually sign in. A customer or
+        // consignor has no DealerCore account, so the button would land them
+        // on a login screen for a product that is not theirs.
+        // Explicit only. This used to be a keyword match on the subject line, so
+        // any subject containing "update" or "review" grew a button nobody chose.
+        cta: m.n.cta || '',
+        ctaAfter: m.n.ctaAfter || '',
       })
     : '<p class="none">Marked redundant' + (m.n.redundantTo ? ' to “' + esc(m.n.redundantTo) + '”' : '') + '.</p>';
 
@@ -194,12 +256,12 @@ function section(m, i, order) {
       '<span class="tabs">' +
         '<button class="tab on" data-p="email">' + icon('email') + '<span>Email</span></button>' +
         '<button class="tab' + (m.n.sms.length ? '' : ' empty') + '" data-p="sms">' + icon('sms') + '<span>SMS</span></button>' +
-        '<button class="tab' + (m.n.channels.push ? '' : ' empty') + '" data-p="push">' + icon('push') + '<span>Push</span></button>' +
+        '<button class="tab' + (m.n.channels.push ? '' : ' empty') + '" data-p="push">' + icon('push') + '<span>In-app</span></button>' +
       '</span>' +
     '</div>' +
     '<div class="panel" data-p="email">' + emailPanel + '</div>' +
     '<div class="panel hide" data-p="sms"><div class="chan">' + smsPanel(m) + '</div></div>' +
-    '<div class="panel hide" data-p="push"><div class="chan">' + pushPanel(m) + '</div></div>' +
+    '<div class="panel hide" data-p="push"><div class="chan">' + inAppPanel(m) + '</div></div>' +
     '</div>';
 
   const meta = '<div class="meta">' +
@@ -218,17 +280,20 @@ function section(m, i, order) {
     : '';
 
   return '<section class="tpl" id="' + id + '" data-status="' + m.status +
-    '" data-name="' + attr(m.n.tab.toLowerCase()) + '">' +
+    '" data-name="' + attr((shown(m.n) + ' ' + m.n.tab).toLowerCase()) + '">' +
     '<div class="crumb">' + esc(groupOf(m)) + '<span>' + i + ' of ' + (order.length - 1) + '</span></div>' +
     // Nearly every template was revised, so that chip says nothing. Only the
     // exceptions are worth flagging.
-    '<div class="tpl-head"><h2>' + esc(m.n.tab) + '</h2>' +
+    '<div class="tpl-head"><h2>' + esc(shown(m.n)) + '</h2>' +
       (m.status === 'NEW' || m.status === 'REDUNDANT'
         ? '<span class="chip ' + m.status + '">' + m.status + '</span>' : '') +
       (m.join.status === 'RENAMED' ? '<span class="chip soft">was “' + esc(m.join.oldTitle) + '”</span>' : '') +
+      (m.flagged ? '<span class="chip FLAG">Flagged</span>' : '') +
       (m.hasAttachment ? '<span class="chip ATTACH">' + icon('email') + 'Attachment</span>' : '') +
       '</div>' +
     meta +
+    (m.flagNote ? '<div class="flagbar"><b>Open question</b>' + esc(m.flagNote) + '</div>' : '') +
+    (m.noteBar ? '<div class="notebar"><b>New addition</b>' + esc(m.noteBar) + '</div>' : '') +
     '<div class="cols"><div>' + oldPane + '</div><div class="newcol">' + newPane + '</div></div>' +
     why +
     pager(i, order) +
@@ -276,7 +341,7 @@ const counts = model.reduce((a, m) => ((a[m.status] = (a[m.status] || 0) + 1), a
 
 // Reading order for the pager: guidelines first, then every template.
 const order = [{ id: 'guidelines', label: 'Guidelines' }]
-  .concat(model.map((m, i) => ({ id: slug(m.n.tab), label: m.n.tab, num: i + 1 })));
+  .concat(model.map((m, i) => ({ id: slug(m.n.tab), label: shown(m.n), num: i + 1 })));
 
 // Collapsible groups keep 100 entries from filling the sidebar at once.
 // Sidebar numbers are the reading-order position, so they match the "N of 100"
@@ -288,17 +353,19 @@ const nav = GROUPS.map((g) => {
   if (!items.length) return '';
   return '<details class="navgrp"><summary>' + g + '<span>' + items.length + '</span></summary>' +
     items.map((m) => '<a class="navlink" href="#' + slug(m.n.tab) + '" data-status="' + m.status +
-      '" data-name="' + attr(m.n.tab.toLowerCase()) + '">' +
+      '" data-name="' + attr((shown(m.n) + ' ' + m.n.tab).toLowerCase()) + '">' +
       '<span class="n">' + positionOf.get(m) + '</span>' +
-      '<span class="nm">' + esc(m.n.tab) + '</span>' +
-      (['NEW', 'REDUNDANT', 'LAYOUT'].includes(m.status) ? '<span class="dot ' + m.status + '"></span>' : '') +
+      '<span class="nm">' + esc(shown(m.n)) + '</span>' +
+      // The only dot on the page. Status is carried by the chip on the template;
+      // a second dot per status turned the sidebar into a legend nobody read.
+      (m.flagged ? '<span class="dot FLAG"></span>' : '') +
       '</a>').join('') +
     '</details>';
 }).join('');
 
 const html = '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
   '<meta name="viewport" content="width=device-width,initial-scale=1">' +
-  '<title>DealerCore — Email, SMS &amp; Push Copy</title><style>' + CSS + '</style></head><body>' +
+  '<title>DealerCore — Email, SMS &amp; In-app Copy</title><style>' + CSS + '</style></head><body>' +
   LOGO_DEFS + SOCIAL_DEFS + DEALER_DEFS + ICON_DEFS +
   '<div class="layout"><aside class="side">' +
     '<div class="side-title">' + lockup('dc-mark-side') + '</div>' +
@@ -306,7 +373,7 @@ const html = '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
     '<a class="navlink navtop" href="#guidelines" data-name="guidelines">Guidelines</a>' +
     nav +
   '</aside><main class="main">' +
-    '<div class="pagehead"><h1>Email, SMS &amp; push copy</h1>' +
+    '<div class="pagehead"><h1>Email, SMS &amp; in-app copy</h1>' +
       '<p class="kbd">Use <b>←</b> <b>→</b> to move between templates, <b>/</b> to search.</p></div>' +
     guidelines(order) +
     model.map((m, i) => section(m, i + 1, order)).join('') +

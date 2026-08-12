@@ -162,7 +162,7 @@ function renderBody(lines) {
   return out.join('');
 }
 
-function renderEmail({ sigCategory, subject, body = [], signature = [], cta }) {
+function renderEmail({ sigCategory, subject, body = [], signature = [], cta, ctaAfter }) {
   const isCat1 = /1/.test(String(sigCategory));
 
   // Customer-facing mail leads with the dealership's own brand; DealerCore
@@ -181,8 +181,8 @@ function renderEmail({ sigCategory, subject, body = [], signature = [], cta }) {
         (subject ? '<h1 class="dc-h1">' + esc(subject) + '</h1>' : '') +
         '<div class="dc-body">' + renderBody(body) + '</div>' +
         (cta
-          ? '<div class="dc-cta-wrap"><span class="dc-cta">' + esc(cta) + '</span>' +
-              '<span class="dc-cta-note">Link expires in 30 days</span></div>'
+          ? '<div class="dc-cta-wrap"><span class="dc-cta">' + esc(cta) + '</span></div>' +
+            (ctaAfter ? '<div class="dc-body"><p class="dc-p">' + esc(ctaAfter) + '</p></div>' : '')
           : '') +
         (cleanSignature(signature).length
           ? '<div class="dc-sig"><div class="dc-sig-off">' + SIGN_OFF + '</div>' +

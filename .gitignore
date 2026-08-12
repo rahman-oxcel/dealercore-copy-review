@@ -22,6 +22,9 @@ CLAUDE.md
 # carries written email copy too (Verification's body, lead fields, greetings).
 data/subjects.json
 data/overrides.json
+# The templates the sheet never had, written from scratch: full email and SMS
+# copy, not configuration.
+data/added.json
 
 node_modules/
 package-lock.json

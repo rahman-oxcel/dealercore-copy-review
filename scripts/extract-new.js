@@ -180,11 +180,32 @@ const templates = wb.SheetNames.filter((n) => !META.has(n)).map((name) => {
 });
 
 // Corrections to known errors in the sheet, kept out of the extractor itself.
-const { applyOverrides, applySubjects, normaliseGreetings, removeCallToActions } = require('./lib/overrides.js');
+const { applyOverrides, applySubjects, normaliseGreetings, removeCallToActions, limitInApp, oneExclamation, dropSingleBlockHeadings, sayGetInTouch, capitaliseSentences,
+  dedupeAdjacentLines, stripBodySignOff, dropCustomerPhoneRows, addTemplates, dropTemplates } = require('./lib/overrides.js');
+const dropped = dropTemplates(templates);
+if (dropped.length) console.log('--- proposed templates removed: ' + dropped.join(', ') + ' ---');
+const grown = addTemplates(templates);
+if (grown.length) console.log('--- templates added (missing from the sheet): ' + grown.join(', ') + ' ---');
 const patched = applyOverrides(templates);
 const subjed = applySubjects(templates);
 const greeted = normaliseGreetings(templates);
 const decalled = removeCallToActions(templates);
+const reached = sayGetInTouch(templates);
+if (reached.length) console.log('--- "reach out" -> "get in touch": ' + reached.length + ' templates ---');
+const deduped = dedupeAdjacentLines(templates);
+if (deduped.length) console.log('--- duplicate rows removed: ' + deduped.join(', ') + ' ---');
+const stripped = stripBodySignOff(templates);
+if (stripped.length) console.log('--- sign-off removed from body: ' + stripped.join(', ') + ' ---');
+const nophone = dropCustomerPhoneRows(templates);
+if (nophone.length) console.log('--- phone rows removed from customer mail: ' + nophone.join(', ') + ' ---');
+const heads = dropSingleBlockHeadings(templates);
+if (heads.length) console.log('--- detail-block headings dropped: ' + heads.length + ' templates ---');
+const bangs = oneExclamation(templates);
+if (bangs.length) console.log('--- second exclamation mark removed: ' + bangs.length + ' SMS ---');
+const capped = capitaliseSentences(templates);
+if (capped.length) console.log('--- sentence capitals fixed: ' + capped.length + ' SMS ---');
+const noInApp = limitInApp(templates);
+if (noInApp.length) console.log('--- in-app channel set from login: ' + noInApp.length + ' templates ---');
 if (decalled.length) console.log('--- call-to-actions removed: ' + decalled.length + ' templates ---');
 if (subjed.length) console.log('--- subject lines rewritten: ' + subjed.length + ' ---');
 if (greeted.length) console.log('--- greeting commas added: ' + greeted.length + ' (' + greeted.join(', ') + ') ---');
