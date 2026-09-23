@@ -397,6 +397,13 @@ function applyOverrides(templates) {
       t.why = [];
     }
 
+    // Where the Blade file is not what production actually sends, the old side
+    // can be replaced by the dev team's own description of the live email.
+    if (rule.setOldPreview) {
+      applied.push({ tab: t.tab, ok: true, what: 'old preview replaced' });
+      t.oldPreview = rule.setOldPreview;
+    }
+
     if (rule.setInApp) {
       applied.push({ tab: t.tab, ok: true, what: 'in-app line set' });
       t.inApp = rule.setInApp;

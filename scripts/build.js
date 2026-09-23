@@ -25,6 +25,9 @@ try { inventory = R('data/inventory.json'); } catch (e) { /* not supplied */ }
 let finalised = [];
 try { finalised = R('data/finalised.json'); } catch (e) { /* not supplied */ }
 const DONE = new Set(finalised);
+// Only the owner decides this. Retiring a template is not the same as settling
+// it, and nothing else may put a dot on the list.
+const isDone = (m) => DONE.has(m.n.tab);
 // The chip carries the Inventory's own wording, so a reader holding both can
 // match them without translating, plus the row it sits on there. A template can
 // answer to two rows (one layout serving two sends), hence the plural.
@@ -34,10 +37,10 @@ const INV_CLASS = {
   'Only in v0.1': 'NOTLISTED',
 };
 const invChip = (m) => {
-  // A finalised template has had its question answered, so the status it held
+  // A settled template has had its question answered, so the status it held
   // against the dev team's list is history. The green dot in the sidebar is the
   // only mark it needs.
-  if (DONE.has(m.n.tab)) return '';
+  if (isDone(m)) return '';
   const e = inventory[m.n.tab];
   if (!e || !e.status) return '';
   const cls = INV_CLASS[e.status] || 'soft';
@@ -76,6 +79,21 @@ function previewDoc(blade) {
   return '<!doctype html><meta charset="utf-8">' +
     '<style>body{font:14px/1.6 Inter,system-ui,sans-serif;margin:0;padding:18px;color:#4a4441;background:#faf8f6}' +
     'img{max-width:100%}table{max-width:100%}</style>' + body;
+}
+
+// A supplied description of the live email rather than a Blade file: set on the
+// same warm ground as the Blade previews so the two sides still read as a pair.
+function plainDoc(lines) {
+  const body = lines.map((l) => {
+    const m = /^([A-Z][A-Za-z ]{2,12}):s*(.*)$/.exec(l);
+    return m
+      ? '<p><span style="display:block;font:700 10px/1.6 sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#a2968c">' +
+        esc(m[1]) + '</span>' + esc(m[2]) + '</p>'
+      : '<p>' + esc(l) + '</p>';
+  }).join('');
+  return '<!doctype html><meta charset="utf-8">' +
+    '<style>body{font:14px/1.6 Inter,system-ui,sans-serif;margin:0;padding:18px;color:#4a4441;background:#faf8f6}' +
+    'p{margin:0 0 13px}</style>' + body;
 }
 
 // Recipient is a more useful grouping than the sheet's loose categories, whose
@@ -267,7 +285,9 @@ function section(m, i, order) {
   }
 
   const oldPane = '<div class="pane old"><div class="pane-h">Old (as sent today)</div>' +
-    (m.o
+    (m.n.oldPreview
+      ? '<iframe sandbox="allow-same-origin" srcdoc="' + attr(plainDoc(m.n.oldPreview)) + '"></iframe>'
+      : m.o
       // allow-same-origin only, so the parent can measure the rendered height.
       // Scripts stay blocked: without allow-scripts nothing inside can execute.
       ? '<iframe sandbox="allow-same-origin" srcdoc="' + attr(previewDoc(m.o.blade)) + '"></iframe>'
@@ -397,7 +417,7 @@ const nav = GROUPS.map((g) => {
       '<span class="nm">' + esc(shown(m.n)) + '</span>' +
       // The only mark in the sidebar, and it means one thing: this template is
       // settled. Everything else is carried by the chips on the template itself.
-      (DONE.has(m.n.tab) ? '<span class="dot DONE"></span>' : '') +
+      (isDone(m) ? '<span class="dot DONE"></span>' : '') +
       '</a>').join('') +
     '</details>';
 }).join('');
