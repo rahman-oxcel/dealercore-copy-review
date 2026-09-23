@@ -20,6 +20,11 @@ const qa = R('qa_old.json');
 // on a fresh clone, and absent per template when the two agree.
 let inventory = {};
 try { inventory = R('data/inventory.json'); } catch (e) { /* not supplied */ }
+// Templates the owner has signed off. The only mark in the sidebar: everything
+// else about a template is carried by the chips on the template itself.
+let finalised = [];
+try { finalised = R('data/finalised.json'); } catch (e) { /* not supplied */ }
+const DONE = new Set(finalised);
 // The chip carries the Inventory's own wording, so a reader holding both can
 // match them without translating, plus the row it sits on there. A template can
 // answer to two rows (one layout serving two sends), hence the plural.
@@ -29,6 +34,10 @@ const INV_CLASS = {
   'Only in v0.1': 'NOTLISTED',
 };
 const invChip = (m) => {
+  // A finalised template has had its question answered, so the status it held
+  // against the dev team's list is history. The green dot in the sidebar is the
+  // only mark it needs.
+  if (DONE.has(m.n.tab)) return '';
   const e = inventory[m.n.tab];
   if (!e || !e.status) return '';
   const cls = INV_CLASS[e.status] || 'soft';
@@ -382,15 +391,13 @@ const nav = GROUPS.map((g) => {
   const items = model.filter((m) => groupOf(m) === g);
   if (!items.length) return '';
   return '<details class="navgrp"><summary>' + g + '<span>' + items.length + '</span></summary>' +
-    items.map((m) => '<a class="navlink" href="#' + slug(m.n.tab) +
-      '" data-inv="' + attr((inventory[m.n.tab] || {}).status || '') +
-      '" data-status="' + m.status +
+    items.map((m) => '<a class="navlink" href="#' + slug(m.n.tab) + '" data-status="' + m.status +
       '" data-name="' + attr((shown(m.n) + ' ' + m.n.tab).toLowerCase()) + '">' +
       '<span class="n">' + positionOf.get(m) + '</span>' +
       '<span class="nm">' + esc(shown(m.n)) + '</span>' +
-      // The only dot on the page. Status is carried by the chip on the template;
-      // a second dot per status turned the sidebar into a legend nobody read.
-      (m.flagged ? '<span class="dot FLAG"></span>' : '') +
+      // The only mark in the sidebar, and it means one thing: this template is
+      // settled. Everything else is carried by the chips on the template itself.
+      (DONE.has(m.n.tab) ? '<span class="dot DONE"></span>' : '') +
       '</a>').join('') +
     '</details>';
 }).join('');

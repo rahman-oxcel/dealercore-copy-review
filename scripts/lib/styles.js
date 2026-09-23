@@ -31,13 +31,6 @@ code{font-family:Consolas,"SFMono-Regular",monospace;font-size:12.5px;background
 .navlink.cur{background:#e7f1f8;color:#0d5f8c;font-weight:600;box-shadow:inset 2px 0 0 #008BC7}
 .navgrp > .navlink:last-child{margin-bottom:7px}
 .navlink .nm{min-width:0;overflow-wrap:break-word}
-/* The sidebar name takes the colour the Inventory gives it, the same three used
-   in that sheet and on the chips, so the whole list can be scanned for the ones
-   still needing an answer. The current item keeps its own highlight. */
-.navlink[data-inv="Matched"] .nm{color:#4b6b57}
-.navlink[data-inv="Partially Matched"] .nm{color:#8a6206;font-weight:600}
-.navlink[data-inv="Only in v0.1"] .nm{color:#2c4f86;font-weight:600}
-.navlink.cur .nm{color:inherit}
 .dot{width:6px;height:6px;border-radius:50%;flex:none}
 
 .main{flex:1;min-width:0;padding:32px 40px 80px;max-width:1280px}
@@ -106,7 +99,8 @@ code{font-family:Consolas,"SFMono-Regular",monospace;font-size:12.5px;background
 .chip.LAYOUT{background:#f2f0f7;color:#544273;border-color:#ddd6ea}
 .chip.ATTACH{display:inline-flex;align-items:center;gap:5px;background:#fdf6e9;color:#8a6516;border-color:#f0e0bf}
 .chip.ATTACH .ci{width:11px;height:11px;fill:currentColor}
-.dot.FLAG{background:#d92d20;box-shadow:0 0 0 2px #fbdedb}
+/* Green means finalised, and nothing else earns a dot. */
+.dot.DONE{background:#12703f;box-shadow:0 0 0 2px #cdeadb}
 .flagbar{margin:0 0 14px;padding:11px 14px;border:1px solid #f2c4be;border-left:3px solid #d92d20;border-radius:8px;background:#fef5f4;color:#8f2018;font-size:13px;line-height:1.55}
 .flagbar b{display:block;font-size:12px;font-weight:700;color:#b42318;margin-bottom:2px}
 .notebar{margin:0 0 14px;padding:11px 14px;border:1px solid #f0dfae;border-left:3px solid #d99a06;border-radius:8px;background:#fdf8ec;color:#7a5806;font-size:13px;line-height:1.55}
