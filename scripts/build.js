@@ -215,12 +215,16 @@ function layoutSection(m, i, order) {
     '<div class="crumb">' + esc(groupOf(m)) + '<span>' + i + ' of ' + (order.length - 1) + '</span></div>' +
     '<div class="tpl-head"><h2>' + esc(shown(m.n)) + '</h2>' +
       '<span class="chip LAYOUT">Layout</span>' + invChip(m) + '</div>' +
-    '<div class="onecol"><div class="pane new"><div class="pane-h"><span>Copy</span></div>' +
-      '<div class="panel"><div class="chan">' +
-        '<p class="ruled"><b>Layout, not a notification.</b></p>' +
-        (m.notes.length ? '<ul class="layoutnote">' + m.notes.map((w) => '<li>' + esc(w) + '</li>').join('') + '</ul>' : '') +
-      '</div></div>' +
-    '</div></div>' + pager(i, order) + '</section>';
+    '<div class="cols"><div><div class="pane old"><div class="pane-h">Old (as sent today)</div>' +
+      (m.o ? '<iframe sandbox="allow-same-origin" srcdoc="' + attr(previewDoc(m.o.blade)) + '"></iframe>' : '') +
+    '</div></div><div class="newcol">' +
+      '<div class="pane new"><div class="pane-h"><span>Copy</span></div>' +
+        '<div class="panel"><div class="chan">' +
+          '<p class="ruled"><b>Layout, not a notification.</b></p>' +
+          (m.notes.length ? '<ul class="layoutnote">' + m.notes.map((w) => '<li>' + esc(w) + '</li>').join('') + '</ul>' : '') +
+        '</div></div>' +
+      '</div>' +
+    '</div>' + pager(i, order) + '</section>';
 }
 
 function section(m, i, order) {
@@ -252,6 +256,14 @@ function section(m, i, order) {
   if (m.n.isLayout) {
     return layoutSection(m, i, order);
   }
+
+  const oldPane = '<div class="pane old"><div class="pane-h">Old (as sent today)</div>' +
+    (m.o
+      // allow-same-origin only, so the parent can measure the rendered height.
+      // Scripts stay blocked: without allow-scripts nothing inside can execute.
+      ? '<iframe sandbox="allow-same-origin" srcdoc="' + attr(previewDoc(m.o.blade)) + '"></iframe>'
+      : '<p class="none">No existing template. This one is new.</p>') +
+    '</div>';
 
   const newPane = '<div class="pane new">' +
     '<div class="pane-h"><span>Copy</span>' +
@@ -298,7 +310,7 @@ function section(m, i, order) {
     meta +
     (m.flagNote ? '<div class="flagbar"><b>Open question</b>' + esc(m.flagNote) + '</div>' : '') +
     (m.noteBar ? '<div class="notebar"><b>New addition</b>' + esc(m.noteBar) + '</div>' : '') +
-    '<div class="onecol">' + newPane + '</div>' +
+    '<div class="cols"><div>' + oldPane + '</div><div class="newcol">' + newPane + '</div></div>' +
     why +
     pager(i, order) +
     '</section>';
@@ -405,6 +417,15 @@ var q = document.getElementById('q');
 var main = document.querySelector('.main');
 main.setAttribute('tabindex', '-1');
 
+// Clicking inside the old preview moves focus into that document and the arrow
+// keys stop working, so hand focus back as soon as the iframe takes it.
+window.addEventListener('blur', function () {
+  setTimeout(function () {
+    var a = document.activeElement;
+    if (a && a.tagName === 'IFRAME') { a.blur(); main.focus({ preventScroll: true }); }
+  }, 0);
+});
+
 // One template on screen at a time. 100 sections in a single scroll is not
 // navigable, so the hash selects which one is shown.
 // Size the three channel panels to the tallest of them, so switching tabs does
@@ -416,7 +437,17 @@ function fit(sec) {
   var panels = sec.querySelectorAll('.panel');
   if (!panels.length) return;
 
-  var h = Math.max(stage ? stage.scrollHeight : 0, 320);
+  // Size both sides to the taller of the two, so neither scrolls and the
+  // columns stay level.
+  var frame = sec.querySelector('.pane.old iframe');
+  var oldH = 0;
+  try {
+    var doc = frame && frame.contentDocument;
+    if (doc && doc.body) oldH = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight) + 4;
+  } catch (e) { oldH = 0; }
+
+  var h = Math.max(stage ? stage.scrollHeight : 0, oldH, 320);
+  if (frame) frame.style.height = h + 'px';
   panels.forEach(function (p) { p.style.height = h + 'px'; });
 }
 
@@ -444,7 +475,13 @@ function show(id) {
   }
   window.scrollTo(0, 0);
 
+  // A srcdoc iframe may not have parsed the first time a section opens.
   fit(target);
+  var frame = target && target.querySelector('.pane.old iframe');
+  if (frame && !frame.dataset.fitted) {
+    frame.dataset.fitted = '1';
+    frame.addEventListener('load', function () { fit(target); });
+  }
 }
 
 // Channel tabs are per template, so scope the toggle to the section clicked.

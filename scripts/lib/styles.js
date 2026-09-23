@@ -135,9 +135,9 @@ code{font-family:Consolas,"SFMono-Regular",monospace;font-size:12.5px;background
 .ch.off{background:#f4f6f8;color:#b3bec7;border-color:#e6ebef}
 .ch.off span{text-decoration:line-through}
 
-/* The page is a specification, so there is one column: the copy to build.
-   Capped so long lines stay readable rather than running the full width. */
-.onecol{max-width:660px;margin:0 auto 24px;min-width:0}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;margin-bottom:24px}
+@media(max-width:1060px){.cols{grid-template-columns:1fr}}
+.newcol{display:flex;flex-direction:column;gap:12px;min-width:0}
 .pane{border:1px solid #e4eaef;border-radius:9px;overflow:hidden;min-width:0;background:#fff}
 /* Warm ground for what exists today, cool for what replaces it. */
 .pane.old{border-color:#e9e3dd}
