@@ -16,6 +16,27 @@ const olds = R('old_templates.json');
 const { templates: news, reference } = R('new_templates.json');
 const { rows: joinRows } = R('join_map.json');
 const qa = R('qa_old.json');
+// How each template stands against the dev team's own notification list. Absent
+// on a fresh clone, and absent per template when the two agree.
+let inventory = {};
+try { inventory = R('data/inventory.json'); } catch (e) { /* not supplied */ }
+// The chip carries the Inventory's own wording, so a reader holding both can
+// match them without translating, plus the row it sits on there. A template can
+// answer to two rows (one layout serving two sends), hence the plural.
+const INV_CLASS = {
+  'Matched': 'INVOK',
+  'Partially Matched': 'PARTIAL',
+  'Only in v0.1': 'NOTLISTED',
+};
+const invChip = (m) => {
+  const e = inventory[m.n.tab];
+  if (!e || !e.status) return '';
+  const cls = INV_CLASS[e.status] || 'soft';
+  const where = e.rows && e.rows.length
+    ? ' &middot; ' + (e.rows.length > 1 ? 'Rows ' : 'Row ') + e.rows.join(', ')
+    : '';
+  return '<span class="chip ' + cls + '">' + esc(e.status) + where + '</span>';
+};
 
 const oldById = new Map(olds.map((o) => [o.id, o]));
 const joinByTab = new Map(joinRows.map((r) => [r.tab, r]));
@@ -193,7 +214,7 @@ function layoutSection(m, i, order) {
     '" data-name="' + attr((shown(m.n) + ' ' + m.n.tab).toLowerCase()) + '">' +
     '<div class="crumb">' + esc(groupOf(m)) + '<span>' + i + ' of ' + (order.length - 1) + '</span></div>' +
     '<div class="tpl-head"><h2>' + esc(shown(m.n)) + '</h2>' +
-      '<span class="chip LAYOUT">Layout</span></div>' +
+      '<span class="chip LAYOUT">Layout</span>' + invChip(m) + '</div>' +
     '<div class="meta">' +
       (m.o ? '<span><b>File</b> <code>' + esc(m.o.filePath) + '</code></span>' : '') +
     '</div>' +
@@ -290,6 +311,7 @@ function section(m, i, order) {
       (m.join.status === 'RENAMED' ? '<span class="chip soft">was “' + esc(m.join.oldTitle) + '”</span>' : '') +
       (m.flagged ? '<span class="chip FLAG">Flagged</span>' : '') +
       (m.hasAttachment ? '<span class="chip ATTACH">' + icon('email') + 'Attachment</span>' : '') +
+      invChip(m) +
       '</div>' +
     meta +
     (m.flagNote ? '<div class="flagbar"><b>Open question</b>' + esc(m.flagNote) + '</div>' : '') +
@@ -331,6 +353,20 @@ function guidelines(order) {
       sig('1', 'Sent to a customer, broker, lender or other external contact, off the back of something a dealership user did.') +
       sig('2', 'Sent by DealerCore itself: verification, password resets, billing, platform and security notices, plus internal staff alerts.') +
     '</div>' +
+    // The page is the only thing shared, so a chip that asks the reader a
+    // question has to say what the question is without anywhere to look it up.
+    (Object.keys(inventory).length ? '<div class="box legend"><h3>Against your notification list</h3>' +
+      '<p>Every template carries the status your own list gives it, in your wording, with the row it ' +
+      'sits on there. Two of the three need an answer from you.</p>' +
+      '<p><span class="chip INVOK">Matched &middot; Row 2</span> One entry on your list, one template ' +
+      'here. Nothing needed.</p>' +
+      '<p><span class="chip PARTIAL">Partially Matched &middot; Row 42</span> That row covers more than ' +
+      'one template here, and nothing says which of them fires. The copy for each is written out. Tell ' +
+      'us which is live and the rest can go.</p>' +
+      '<p><span class="chip NOTLISTED">Only in v0.1 &middot; Row 90</span> This template has copy but ' +
+      'your list has no entry for it. Either the list is missing it or nothing sends it any more. Those ' +
+      'marked New were written during this review, so their absence is expected.</p>' +
+      '</div>' : '') +
     pager(0, order) +
   '</section>';
 }

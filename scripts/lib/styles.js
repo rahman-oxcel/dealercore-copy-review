@@ -85,6 +85,12 @@ code{font-family:Consolas,"SFMono-Regular",monospace;font-size:12.5px;background
 .main:focus{outline:none}
 .tpl h2{font-size:22px;line-height:1.25}
 .box.wide{max-width:none}
+/* Sits under the two signature boxes, full width, explaining the chips that
+   ask the reader a question. Each chip leads its own paragraph. */
+.legend{margin-top:14px}
+.legend p{font-size:13.5px;line-height:1.6;color:#4a5560;margin-bottom:9px}
+.legend p:last-child{margin-bottom:0}
+.legend .chip{margin-right:7px;vertical-align:1px}
 .chip{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 8px;border-radius:999px;border:1px solid}
 .chip.NEW{background:#e8f7ee;color:#12703f;border-color:#bfe6cf}
 .chip.REVISED{background:#e9f4fb;color:#0d5f8c;border-color:#c3e0f1}
@@ -102,6 +108,13 @@ code{font-family:Consolas,"SFMono-Regular",monospace;font-size:12.5px;background
 .layoutnote{margin:10px 0 0;padding-left:17px;font-size:13.5px;color:#5b6873}
 .layoutnote li{margin-bottom:4px}
 .chip.soft{background:#f7f9fb;color:#5c6a77;border-color:#e0e7ec;font-weight:600;text-transform:none;letter-spacing:0}
+/* How the template stands against the dev team's own notification list, in that
+   list's wording and colours so the two read as one system. Sentence case, since
+   these name a state rather than shouting a label. Matched is the majority, so
+   it is kept quiet and the two that need an answer carry the colour. */
+.chip.INVOK{background:#f4f8f5;color:#4b6b57;border-color:#dfeae3;font-weight:600;text-transform:none;letter-spacing:0}
+.chip.PARTIAL{background:#fdf8ec;color:#7a5806;border-color:#f0dfae;font-weight:600;text-transform:none;letter-spacing:0}
+.chip.NOTLISTED{background:#eef4fc;color:#2c4f86;border-color:#cfdef3;font-weight:600;text-transform:none;letter-spacing:0}
 .track{margin-left:auto;font-size:12px;font-weight:700;color:#008BC7;text-decoration:none;border:1px solid #c3e0f1;border-radius:999px;padding:3px 11px;background:#f4fafd}
 .track:hover{background:#e9f4fb}
 .boardlink{margin:12px 0 0;font-size:13px;color:#65727e}

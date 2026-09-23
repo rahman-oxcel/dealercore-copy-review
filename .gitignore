@@ -31,3 +31,12 @@ package-lock.json
 site/
 .staticrypt.json
 .claude/
+
+# Reconciliation register: carries subject lines and template names.
+data/register.csv
+
+# Paste-ready payload for the v0.2 Combined tab.
+data/sheet-payload.txt
+
+# Per-template standing against the dev inventory.
+data/inventory.json
