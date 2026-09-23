@@ -31,6 +31,13 @@ code{font-family:Consolas,"SFMono-Regular",monospace;font-size:12.5px;background
 .navlink.cur{background:#e7f1f8;color:#0d5f8c;font-weight:600;box-shadow:inset 2px 0 0 #008BC7}
 .navgrp > .navlink:last-child{margin-bottom:7px}
 .navlink .nm{min-width:0;overflow-wrap:break-word}
+/* The sidebar name takes the colour the Inventory gives it, the same three used
+   in that sheet and on the chips, so the whole list can be scanned for the ones
+   still needing an answer. The current item keeps its own highlight. */
+.navlink[data-inv="Matched"] .nm{color:#4b6b57}
+.navlink[data-inv="Partially Matched"] .nm{color:#8a6206;font-weight:600}
+.navlink[data-inv="Only in v0.1"] .nm{color:#2c4f86;font-weight:600}
+.navlink.cur .nm{color:inherit}
 .dot{width:6px;height:6px;border-radius:50%;flex:none}
 
 .main{flex:1;min-width:0;padding:32px 40px 80px;max-width:1280px}
@@ -128,9 +135,9 @@ code{font-family:Consolas,"SFMono-Regular",monospace;font-size:12.5px;background
 .ch.off{background:#f4f6f8;color:#b3bec7;border-color:#e6ebef}
 .ch.off span{text-decoration:line-through}
 
-.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;margin-bottom:24px}
-@media(max-width:1060px){.cols{grid-template-columns:1fr}}
-.newcol{display:flex;flex-direction:column;gap:12px;min-width:0}
+/* The page is a specification, so there is one column: the copy to build.
+   Capped so long lines stay readable rather than running the full width. */
+.onecol{max-width:660px;margin:0 auto 24px;min-width:0}
 .pane{border:1px solid #e4eaef;border-radius:9px;overflow:hidden;min-width:0;background:#fff}
 /* Warm ground for what exists today, cool for what replaces it. */
 .pane.old{border-color:#e9e3dd}

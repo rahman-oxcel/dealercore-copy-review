@@ -215,20 +215,12 @@ function layoutSection(m, i, order) {
     '<div class="crumb">' + esc(groupOf(m)) + '<span>' + i + ' of ' + (order.length - 1) + '</span></div>' +
     '<div class="tpl-head"><h2>' + esc(shown(m.n)) + '</h2>' +
       '<span class="chip LAYOUT">Layout</span>' + invChip(m) + '</div>' +
-    '<div class="meta">' +
-      (m.o ? '<span><b>File</b> <code>' + esc(m.o.filePath) + '</code></span>' : '') +
-    '</div>' +
-    '<div class="cols">' +
-      '<div><div class="pane old"><div class="pane-h">Old (as sent today)</div>' +
-        (m.o ? '<iframe sandbox srcdoc="' + attr(previewDoc(m.o.blade)) + '"></iframe>' : '') +
+    '<div class="onecol"><div class="pane new"><div class="pane-h"><span>Copy</span></div>' +
+      '<div class="panel"><div class="chan">' +
+        '<p class="ruled"><b>Layout, not a notification.</b></p>' +
+        (m.notes.length ? '<ul class="layoutnote">' + m.notes.map((w) => '<li>' + esc(w) + '</li>').join('') + '</ul>' : '') +
       '</div></div>' +
-      '<div class="newcol"><div class="pane new"><div class="pane-h"><span>New</span></div>' +
-        '<div class="panel"><div class="chan">' +
-          '<p class="ruled"><b>Layout, not a notification.</b></p>' +
-          (m.notes.length ? '<ul class="layoutnote">' + m.notes.map((w) => '<li>' + esc(w) + '</li>').join('') + '</ul>' : '') +
-        '</div></div>' +
-      '</div></div>' +
-    '</div>' + pager(i, order) + '</section>';
+    '</div></div>' + pager(i, order) + '</section>';
 }
 
 function section(m, i, order) {
@@ -237,15 +229,6 @@ function section(m, i, order) {
 
   // No separate subject field: the email renders the subject as its headline,
   // so a labelled field above the preview would show the same text twice.
-  const oldPane = '<div class="pane old"><div class="pane-h">Old (as sent today)</div>' +
-    (m.o
-      // allow-same-origin only, so the parent can measure the rendered height
-      // and size the pane to it. Scripts stay blocked: without allow-scripts
-      // nothing inside the preview can execute.
-      ? '<iframe sandbox="allow-same-origin" srcdoc="' + attr(previewDoc(m.o.blade)) + '"></iframe>'
-      : '<p class="none">No existing template. This one is new.</p>') +
-    '</div>';
-
   // The old side only ever has an email, so the channel tabs belong to the new
   // panel rather than to the whole template.
   const emailPanel = m.n.body.length
@@ -271,7 +254,7 @@ function section(m, i, order) {
   }
 
   const newPane = '<div class="pane new">' +
-    '<div class="pane-h"><span>New</span>' +
+    '<div class="pane-h"><span>Copy</span>' +
       // A channel that isn't used keeps its tab but is struck through, so the
       // full channel set stays legible at a glance.
       '<span class="tabs">' +
@@ -286,7 +269,6 @@ function section(m, i, order) {
     '</div>';
 
   const meta = '<div class="meta">' +
-    (m.o ? '<span><b>File</b> <code>' + esc(m.o.filePath) + '</code></span>' : '<span><b>File</b> to be created</span>') +
     '<span><b>Trigger</b> ' + esc(m.n.trigger || '—') + '</span>' +
     // No channel chips here: the tabs on the New panel already carry that, and
     // showing both meant reading the same fact twice. "Sent as" lives here
@@ -316,7 +298,7 @@ function section(m, i, order) {
     meta +
     (m.flagNote ? '<div class="flagbar"><b>Open question</b>' + esc(m.flagNote) + '</div>' : '') +
     (m.noteBar ? '<div class="notebar"><b>New addition</b>' + esc(m.noteBar) + '</div>' : '') +
-    '<div class="cols"><div>' + oldPane + '</div><div class="newcol">' + newPane + '</div></div>' +
+    '<div class="onecol">' + newPane + '</div>' +
     why +
     pager(i, order) +
     '</section>';
@@ -388,7 +370,9 @@ const nav = GROUPS.map((g) => {
   const items = model.filter((m) => groupOf(m) === g);
   if (!items.length) return '';
   return '<details class="navgrp"><summary>' + g + '<span>' + items.length + '</span></summary>' +
-    items.map((m) => '<a class="navlink" href="#' + slug(m.n.tab) + '" data-status="' + m.status +
+    items.map((m) => '<a class="navlink" href="#' + slug(m.n.tab) +
+      '" data-inv="' + attr((inventory[m.n.tab] || {}).status || '') +
+      '" data-status="' + m.status +
       '" data-name="' + attr((shown(m.n) + ' ' + m.n.tab).toLowerCase()) + '">' +
       '<span class="n">' + positionOf.get(m) + '</span>' +
       '<span class="nm">' + esc(shown(m.n)) + '</span>' +
@@ -421,37 +405,18 @@ var q = document.getElementById('q');
 var main = document.querySelector('.main');
 main.setAttribute('tabindex', '-1');
 
-// Clicking inside the old-preview iframe moves focus into it, and key events
-// then go to that document instead of this one, which killed the arrow keys.
-// Hand focus back as soon as the iframe takes it.
-window.addEventListener('blur', function () {
-  setTimeout(function () {
-    var a = document.activeElement;
-    if (a && a.tagName === 'IFRAME') { a.blur(); main.focus({ preventScroll: true }); }
-  }, 0);
-});
-
 // One template on screen at a time. 100 sections in a single scroll is not
 // navigable, so the hash selects which one is shown.
-// Size both previews to whichever is taller, so neither side scrolls and the
-// two columns stay level. Panes are display:none until active, and a hidden
+// Size the three channel panels to the tallest of them, so switching tabs does
+// not make the page jump. Panels are display:none until active and a hidden
 // element measures zero, so this can only run once the section is showing.
 function fit(sec) {
   if (!sec) return;
-  var frame = sec.querySelector('.pane.old iframe');
   var stage = sec.querySelector('.panel[data-p="email"] .dc-stage');
   var panels = sec.querySelectorAll('.panel');
   if (!panels.length) return;
 
-  var newH = stage ? stage.scrollHeight : 0;
-  var oldH = 0;
-  try {
-    var doc = frame && frame.contentDocument;
-    if (doc && doc.body) oldH = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight) + 4;
-  } catch (e) { oldH = 0; }
-
-  var h = Math.max(newH, oldH, 320);
-  if (frame) frame.style.height = h + 'px';
+  var h = Math.max(stage ? stage.scrollHeight : 0, 320);
   panels.forEach(function (p) { p.style.height = h + 'px'; });
 }
 
@@ -479,14 +444,7 @@ function show(id) {
   }
   window.scrollTo(0, 0);
 
-  // The srcdoc iframe may not have parsed yet the first time a section opens,
-  // so fit now and again on load.
   fit(target);
-  var frame = target && target.querySelector('.pane.old iframe');
-  if (frame && !frame.dataset.fitted) {
-    frame.dataset.fitted = '1';
-    frame.addEventListener('load', function () { fit(target); });
-  }
 }
 
 // Channel tabs are per template, so scope the toggle to the section clicked.
