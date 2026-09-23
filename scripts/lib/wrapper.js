@@ -137,13 +137,17 @@ function renderBody(lines) {
       );
       continue;
     }
-    // A single row isn't a table. Rewind and let the line render normally:
-    // a split row consumes two lines, so lines[i-1] was the wrong one and the
-    // label line was being dropped.
+    // A single row isn't a table, and rendering it as plain prose buried the
+    // one fact the notification exists to report under the unchanged details
+    // below it. It gets its own block instead: label above, value large.
     if (run.length === 1) {
-      i = runStart;
-      out.push('<p class="dc-p">' + esc(lines[i]) + '</p>');
-      i++;
+      out.push(
+        '<table class="dc-lead"><tbody><tr><td>' +
+          '<div class="dc-lead-l">' + esc(run[0].label) + '</div>' +
+          '<div class="dc-lead-v">' + esc(run[0].value) + '</div>' +
+        '</td></tr></tbody></table>'
+      );
+      i = runStart + (splitRow(lines, runStart) ? 2 : 1);
       continue;
     }
 

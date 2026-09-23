@@ -195,6 +195,10 @@ code{font-family:Consolas,"SFMono-Regular",monospace;font-size:12.5px;background
 .dc-dt-l{font-size:11px;color:#8b98a4;text-transform:uppercase;letter-spacing:.04em;font-weight:600;padding-right:16px;white-space:nowrap;width:1%}
 .dc-dt-v{font-size:12.5px;color:#0f1418;font-weight:700;text-align:right}
 .dc-details tr:last-child td{border-bottom:0}
+.dc-lead{width:100%;border-collapse:collapse;margin:6px 0 18px}
+.dc-lead td{padding:13px 16px;background:#f4f7fa;border-left:3px solid #2f6fb5;border-radius:3px}
+.dc-lead-l{font-size:11px;color:#8b98a4;text-transform:uppercase;letter-spacing:.04em;font-weight:600;margin-bottom:4px}
+.dc-lead-v{font-size:17px;color:#0f1418;font-weight:700;line-height:1.3}
 
 .dc-cta-wrap{text-align:center;padding:18px 28px 20px}
 .dc-cta{display:inline-block;background:#1d8fd1;color:#fff;font-size:14px;font-weight:600;padding:12px 26px;border-radius:5px}
