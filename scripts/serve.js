@@ -5,7 +5,8 @@ const fs = require('fs');
 const path = require('path');
 
 const FILE = path.join(__dirname, '..', 'DealerCore-Reviewed-Copy.html');
-const PORT = 8099;
+// The Browser pane may assign another port when 8099 is already taken.
+const PORT = Number(process.env.PORT) || 8099;
 
 http.createServer((req, res) => {
   fs.readFile(FILE, (err, buf) => {

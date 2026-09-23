@@ -318,11 +318,6 @@ function section(m, i, order) {
     '<span><b>Sent as</b> ' + esc(sigName(m.n.sigCategory)) + '</span>' +
     '</div>';
 
-  const why = m.notes.length
-    ? '<div class="box why wide"><h3>What changed</h3><ul>' +
-        m.notes.map((w) => '<li>' + esc(w) + '</li>').join('') + '</ul></div>'
-    : '';
-
   return '<section class="tpl" id="' + id + '" data-status="' + m.status +
     '" data-name="' + attr((shown(m.n) + ' ' + m.n.tab).toLowerCase()) + '">' +
     '<div class="crumb">' + esc(groupOf(m)) + '<span>' + i + ' of ' + (order.length - 1) + '</span></div>' +
@@ -340,7 +335,6 @@ function section(m, i, order) {
     (m.flagNote ? '<div class="flagbar"><b>Open question</b>' + esc(m.flagNote) + '</div>' : '') +
     (m.noteBar ? '<div class="notebar"><b>New addition</b>' + esc(m.noteBar) + '</div>' : '') +
     '<div class="cols"><div>' + oldPane + '</div><div class="newcol">' + newPane + '</div></div>' +
-    why +
     pager(i, order) +
     '</section>';
 }

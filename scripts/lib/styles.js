@@ -84,7 +84,6 @@ code{font-family:Consolas,"SFMono-Regular",monospace;font-size:12.5px;background
 .tpl-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
 .main:focus{outline:none}
 .tpl h2{font-size:22px;line-height:1.25}
-.box.wide{max-width:none}
 /* Sits under the two signature boxes, full width, explaining the chips that
    ask the reader a question. Each chip leads its own paragraph. */
 .legend{margin-top:14px}
@@ -158,8 +157,6 @@ code{font-family:Consolas,"SFMono-Regular",monospace;font-size:12.5px;background
 .push .ti{display:block;font-size:13px;font-weight:700;color:#1f2a33;margin-bottom:2px}
 .push .bd{display:block;font-size:13px;color:#4c5a66;line-height:1.5}
 .todo{color:#8a5a10}
-.why ul{margin:0;padding-left:17px;font-size:13.5px;color:#4c5a66}
-.why li{margin-bottom:3px}
 .guide .box h3{font-size:13.5px;text-transform:none;letter-spacing:0;color:#1f2a33;margin-bottom:7px}
 .guide .box ul{margin:0;padding-left:17px;font-size:13.5px;color:#4c5a66}
 .guide .box li{margin-bottom:4px}

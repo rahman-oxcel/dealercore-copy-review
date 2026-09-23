@@ -22,7 +22,6 @@ const checks = {
   'old previews (iframes)': $('iframe').length,
   'new email previews': $('.dc-card').length,
   'cat-1 dealership wrappers': $('.dc-logo-dealer').length,
-  'what-changed blocks': $('.why').length,
   'sms bubbles': $('.bubble').length,
   'push cards': $('.push').length,
 };
