@@ -370,15 +370,6 @@ function guidelines(order) {
       sig('1', 'Sent to a customer, broker, lender or other external contact, off the back of something a dealership user did.') +
       sig('2', 'Sent by DealerCore itself: verification, password resets, billing, platform and security notices, plus internal staff alerts.') +
     '</div>' +
-    // Two of the reviewed files turned out to be layouts. A numbered section for
-    // each asked the reviewer for a decision it could not take, so they are named
-    // here instead. The page is the only thing shared, so the fact has to live
-    // somewhere on it.
-    '<div class="box"><h3>Layouts</h3><p>' +
-      'Two of the files reviewed are layouts rather than notifications: shared shells that other ' +
-      'emails render inside. They carry no copy of their own, so they are not listed here. Nothing on ' +
-      'them needs rewriting; the changes in this set apply to the notifications that render through them.' +
-    '</p></div>' +
     // The page is the only thing shared, so a chip that asks the reader a
     // question has to say what the question is without anywhere to look it up.
     (Object.keys(inventory).length ? '<div class="box legend"><h3>Against your notification list</h3>' +
