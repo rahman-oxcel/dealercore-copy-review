@@ -40,3 +40,6 @@ data/sheet-payload.txt
 
 # Per-template standing against the dev inventory.
 data/inventory.json
+
+# Templates the owner has signed off. Drives the green dot in the sidebar.
+data/finalised.json
