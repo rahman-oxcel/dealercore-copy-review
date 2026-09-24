@@ -346,6 +346,9 @@ function addTemplates(templates) {
       body: a.body.slice(),
       sms: (a.sms || []).slice(),
       smsNote: '',
+      // The row on the dev team's list this one answers to, so the old side can
+      // show what it replaces.
+      devRow: a.devRow || '',
       redundantTo: '',
       redundant: false,
       why: [],

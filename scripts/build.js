@@ -98,6 +98,44 @@ function plainDoc(lines) {
 
 // Recipient is a more useful grouping than the sheet's loose categories, whose
 // "Others" bucket is a catch-all.
+// A template written during the review has no Blade file, so the old side has
+// nothing to render. Where it answers to a row on the dev team's own list, that
+// row is what it replaces, so the row is what the old side shows.
+const DEV_ROWS = (() => {
+  const out = {};
+  let text = '';
+  try { text = fs.readFileSync(path.join(__dirname, '..', 'data', 'register.csv'), 'utf8'); }
+  catch (e) { return out; }
+  const split = (l) => {
+    const f = []; let cur = '', q = false;
+    for (let i = 0; i < l.length; i++) {
+      const c = l[i];
+      if (c === '"') { if (q && l[i + 1] === '"') { cur += '"'; i++; } else q = !q; }
+      else if (c === ',' && !q) { f.push(cur); cur = ''; }
+      else cur += c;
+    }
+    f.push(cur); return f;
+  };
+  text.split(/\r?\n/).filter(Boolean).slice(1).forEach((l) => {
+    const f = split(l);
+    if (!/^DEV-\d+$/.test(f[0])) return;
+    out[f[0]] = { module: f[1], flow: f[2], name: f[3], subject: f[4], recipient: f[5] };
+  });
+  return out;
+})();
+
+function devRowPane(ref) {
+  const r = DEV_ROWS[ref];
+  if (!r) return '';
+  const row = (k, v) => v ? '<tr><td class="dc-dt-l">' + esc(k) + '</td><td class="dc-dt-v">' + esc(v) + '</td></tr>' : '';
+  return '<div class="devrow">' +
+    '<p>This one is new. Your own list has it as the notification below, with no template behind it yet.</p>' +
+    '<table class="dc-details"><tbody>' +
+      row('Module', r.module) + row('Flow', r.flow) + row('Notification', r.name) +
+      row('Subject', r.subject) + row('Recipient', r.recipient) +
+    '</tbody></table></div>';
+}
+
 const GROUPS = ['Customer', 'Dealer', 'Staff', 'System'];
 // A consignor is a kind of customer, so they sit in that group rather than
 // adding a fifth heading for six templates.
@@ -298,7 +336,8 @@ function section(m, i, order) {
       // allow-same-origin only, so the parent can measure the rendered height.
       // Scripts stay blocked: without allow-scripts nothing inside can execute.
       ? '<iframe sandbox="allow-same-origin" srcdoc="' + attr(previewDoc(m.o.blade)) + '"></iframe>'
-      : '<p class="none">No existing template. This one is new.</p>') +
+      : (m.n.devRow && devRowPane(m.n.devRow))
+        || '<p class="none">No existing template. This one is new.</p>') +
     '</div>';
 
   const newPane = '<div class="pane new">' +
@@ -355,6 +394,19 @@ function sampleSignature(cat) {
   return t ? cleanSignature(t.signature) : [];
 }
 
+// The list is built from the templates that are settled but still carry a
+// question, so it grows as the review does and never pre-empts a template
+// nobody has looked at yet. Same set as the red dots in the sidebar.
+const OPEN_QUESTIONS = model.filter((m) => isDone(m) && m.flagged)
+  .map((m) => ({ name: shown(m.n), q: m.flagNote }));
+
+// Questions that belong to no single template, so nothing in the model can
+// carry them. Added by hand as they come up.
+const SET_QUESTIONS = [
+  'Where does a franchise sales enquiry go? Nothing in the set covers one, and no template here is written for it.',
+  'When a dealership cancels its subscription, DealerCore is told but the dealer is not. Is a cancellation confirmation meant to go to them? Your list carries one unmatched subscription notice to the account owner that might be it.',
+];
+
 function guidelines(order) {
   const sig = (cat, scope) => {
     const name = sigName(cat);
@@ -377,20 +429,15 @@ function guidelines(order) {
       sig('1', 'Sent to a customer, broker, lender or other external contact, off the back of something a dealership user did.') +
       sig('2', 'Sent by DealerCore itself: verification, password resets, billing, platform and security notices, plus internal staff alerts.') +
     '</div>' +
-    // The page is the only thing shared, so a chip that asks the reader a
-    // question has to say what the question is without anywhere to look it up.
-    (Object.keys(inventory).length ? '<div class="box legend"><h3>Against your notification list</h3>' +
-      '<p>Every template carries the status your own list gives it, in your wording, with the row it ' +
-      'sits on there. Two of the three need an answer from you.</p>' +
-      '<p><span class="chip INVOK">Matched &middot; Row 2</span> One entry on your list, one template ' +
-      'here. Nothing needed.</p>' +
-      '<p><span class="chip PARTIAL">Partially Matched &middot; Row 42</span> That row covers more than ' +
-      'one template here, and nothing says which of them fires. The copy for each is written out. Tell ' +
-      'us which is live and the rest can go.</p>' +
-      '<p><span class="chip NOTLISTED">Only in v0.1 &middot; Row 90</span> This template has copy but ' +
-      'your list has no entry for it. Either the list is missing it or nothing sends it any more. Those ' +
-      'marked New were written during this review, so their absence is expected.</p>' +
-      '</div>' : '') +
+    // The page is the only thing shared, so what is still unresolved has to be
+    // readable in one place rather than only on the template it touches.
+    ((OPEN_QUESTIONS.length || SET_QUESTIONS.length) ? '<div class="box open wide"><h3>Still open</h3>' +
+      '<p class="g-scope">Questions we cannot answer from the copy. Each needs a call from your side before the templates they touch can be built.</p>' +
+      (OPEN_QUESTIONS.length ? '<ol>' + OPEN_QUESTIONS.map((o) =>
+        '<li><b>' + esc(o.name) + '</b> ' + esc(o.q) + '</li>').join('') + '</ol>' : '') +
+      (SET_QUESTIONS.length ? '<p class="g-note">Across the set:</p><ol>' +
+        SET_QUESTIONS.map((q) => '<li>' + esc(q) + '</li>').join('') + '</ol>' : '') +
+    '</div>' : '') +
     pager(0, order) +
   '</section>';
 }
@@ -411,14 +458,22 @@ const positionOf = new Map(model.map((m, i) => [m, i + 1]));
 const nav = GROUPS.map((g) => {
   const items = model.filter((m) => groupOf(m) === g);
   if (!items.length) return '';
-  return '<details class="navgrp"><summary>' + esc(label(g)) + '<span>' + items.length + '</span></summary>' +
-    items.map((m) => '<a class="navlink" href="#' + slug(m.n.tab) + '" data-status="' + m.status +
+  // How many of the group are settled, so the sidebar says where the review is
+  // up to rather than only how big each group is.
+  const done = items.filter(isDone).length;
+  const pct = Math.round((done / items.length) * 100);
+  return '<details class="navgrp"><summary>' + esc(label(g)) +
+      '<span class="cnt">' + done + '/' + items.length + '<em>' + pct + '%</em></span>' +
+      '<i class="bar" style="--p:' + pct + '%"></i>' +
+    '</summary>' +
+    items.map((m) => '<a class="navlink' + (isDone(m) ? ' settled' : '') + '" href="#' + slug(m.n.tab) + '" data-status="' + m.status +
       '" data-name="' + attr((shown(m.n) + ' ' + m.n.tab).toLowerCase()) + '">' +
       '<span class="n">' + positionOf.get(m) + '</span>' +
       '<span class="nm">' + esc(shown(m.n)) + '</span>' +
-      // The only mark in the sidebar, and it means one thing: this template is
-      // settled. Everything else is carried by the chips on the template itself.
-      (isDone(m) ? '<span class="dot DONE"></span>' : '') +
+      // Three states, and nothing else in the sidebar. Green: settled. Red: the
+      // copy is settled but an open question on it is still unanswered. Nothing:
+      // not reached yet.
+      (isDone(m) ? '<span class="dot ' + (m.flagged ? 'BLOCKED' : 'DONE') + '"></span>' : '') +
       '</a>').join('') +
     '</details>';
 }).join('');
@@ -430,6 +485,12 @@ const html = '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
   '<div class="layout"><aside class="side">' +
     '<div class="side-title">' + lockup('dc-mark-side') + '</div>' +
     '<input class="search" id="q" type="search" placeholder="Search templates…" autocomplete="off">' +
+    (() => {
+      const d = model.filter(isDone).length;
+      const p = Math.round((d / model.length) * 100);
+      return '<div class="overall"><span>' + d + ' of ' + model.length + '</span><em>' + p + '%</em>' +
+        '<i class="bar" style="--p:' + p + '%"></i></div>';
+    })() +
     '<a class="navlink navtop" href="#guidelines" data-name="guidelines">Guidelines</a>' +
     nav +
   '</aside><main class="main">' +
