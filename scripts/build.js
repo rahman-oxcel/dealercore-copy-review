@@ -184,7 +184,15 @@ const model = news.map((n) => {
 // down the nav, the "N of 100" counter agrees with them, and prev/next walks the
 // list in the order it is displayed. Sort is stable, so order within a group is
 // the sheet's own.
-model.sort((a, b) => GROUPS.indexOf(groupOf(a)) - GROUPS.indexOf(groupOf(b)));
+model.sort((a, b) => {
+  const g = GROUPS.indexOf(groupOf(a)) - GROUPS.indexOf(groupOf(b));
+  if (g) return g;
+  // Settled templates sit at the top of their group and the work still open
+  // falls below them, so the dev team can be handed a block that is ready and
+  // work down it. Sort is stable, so within each half the sheet’s own order is
+  // kept.
+  return (isDone(b) ? 1 : 0) - (isDone(a) ? 1 : 0);
+});
 
 // The page goes straight to the dev team as an instruction, so these state the
 // decision without arguing for it.
