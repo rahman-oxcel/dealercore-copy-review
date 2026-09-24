@@ -104,6 +104,13 @@ const GROUPS = ['Customer', 'Dealer', 'Staff', 'System'];
 const IN_GROUP = { Consignor: 'Customer', Seller: 'Customer' };
 // Nobody in these two groups has a DealerCore account.
 const NO_LOGIN = ['Customer', 'Consignor', 'Seller'];
+// The grouping keys stay as they are, because NO_LOGIN and IN_GROUP read them.
+// Only what the reader sees changes: "System" read as machine-generated when it
+// means the DealerCore team, and "Dealer" names the business rather than the
+// person. "Dealer Principal" is the dev team's own word for the owner.
+const LABEL = { System: 'DealerCore', Dealer: 'Dealer Principal' };
+const label = (r) => LABEL[r] || r;
+
 const groupOf = (m) => {
   const r = IN_GROUP[m.n.channels.recipient] || m.n.channels.recipient;
   return GROUPS.includes(r) ? r : 'System';
@@ -165,7 +172,7 @@ function smsPanel(m) {
       '<div class="sms-b">' + esc(body) + '</div>' +
       '<div class="sms-s">' + signoff.map((l) => '<div>' + esc(l) + '</div>').join('') + '</div>' +
     '</div>' +
-    '<div class="to">To ' + esc(m.n.channels.recipient || '—') + '</div>';
+    '<div class="to">To ' + esc(label(m.n.channels.recipient) || '—') + '</div>';
 }
 
 // A sentence that is only courtesy carries nothing in a notification panel.
@@ -215,7 +222,7 @@ function inAppPanel(m) {
       '<span class="ti">' + esc(m.n.subject || shown(m.n)) + '</span>' +
       '<span class="bd">' + esc(m.n.inApp || inAppBody(m.n)) + '</span>' +
     '</span></div>' +
-    '<div class="to">To ' + esc(m.n.channels.recipient || '—') + '</div>';
+    '<div class="to">To ' + esc(label(m.n.channels.recipient) || '—') + '</div>';
 }
 
 // Prev/next let a reviewer walk the whole set in order without going back to
@@ -239,7 +246,7 @@ function layoutSection(m, i, order) {
   const id = slug(m.n.tab);
   return '<section class="tpl" id="' + id + '" data-status="' + m.status +
     '" data-name="' + attr((shown(m.n) + ' ' + m.n.tab).toLowerCase()) + '">' +
-    '<div class="crumb">' + esc(groupOf(m)) + '<span>' + i + ' of ' + (order.length - 1) + '</span></div>' +
+    '<div class="crumb">' + esc(label(groupOf(m))) + '<span>' + i + ' of ' + (order.length - 1) + '</span></div>' +
     '<div class="tpl-head"><h2>' + esc(shown(m.n)) + '</h2>' +
       '<span class="chip LAYOUT">Layout</span>' + invChip(m) + '</div>' +
     '<div class="cols"><div><div class="pane old"><div class="pane-h">Old (as sent today)</div>' +
@@ -314,13 +321,13 @@ function section(m, i, order) {
     // No channel chips here: the tabs on the New panel already carry that, and
     // showing both meant reading the same fact twice. "Sent as" lives here
     // rather than in the New panel header, where it collided with the tabs.
-    '<span><b>To</b> ' + esc(c.recipient || '—') + '</span>' +
+    '<span><b>To</b> ' + esc(label(c.recipient) || '—') + '</span>' +
     '<span><b>Sent as</b> ' + esc(sigName(m.n.sigCategory)) + '</span>' +
     '</div>';
 
   return '<section class="tpl" id="' + id + '" data-status="' + m.status +
     '" data-name="' + attr((shown(m.n) + ' ' + m.n.tab).toLowerCase()) + '">' +
-    '<div class="crumb">' + esc(groupOf(m)) + '<span>' + i + ' of ' + (order.length - 1) + '</span></div>' +
+    '<div class="crumb">' + esc(label(groupOf(m))) + '<span>' + i + ' of ' + (order.length - 1) + '</span></div>' +
     // Nearly every template was revised, so that chip says nothing. Only the
     // exceptions are worth flagging.
     '<div class="tpl-head"><h2>' + esc(shown(m.n)) + '</h2>' +
@@ -404,7 +411,7 @@ const positionOf = new Map(model.map((m, i) => [m, i + 1]));
 const nav = GROUPS.map((g) => {
   const items = model.filter((m) => groupOf(m) === g);
   if (!items.length) return '';
-  return '<details class="navgrp"><summary>' + g + '<span>' + items.length + '</span></summary>' +
+  return '<details class="navgrp"><summary>' + esc(label(g)) + '<span>' + items.length + '</span></summary>' +
     items.map((m) => '<a class="navlink" href="#' + slug(m.n.tab) + '" data-status="' + m.status +
       '" data-name="' + attr((shown(m.n) + ' ' + m.n.tab).toLowerCase()) + '">' +
       '<span class="n">' + positionOf.get(m) + '</span>' +
