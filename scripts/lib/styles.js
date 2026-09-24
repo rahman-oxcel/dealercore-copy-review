@@ -41,7 +41,7 @@ code{font-family:Consolas,"SFMono-Regular",monospace;font-size:12.5px;background
 .navlink .n{flex:none;width:19px;text-align:right;font-size:10.5px;line-height:1.7;color:#b0bbc5;font-variant-numeric:tabular-nums}
 .navlink.cur .n{color:#3d90bd}
 .navlink .dot{margin-left:auto;margin-top:5px}
-.navlink:hover{background:#eaeff4;color:#1f2a33}
+.navlink:hover{background:#eaeff4;color:#1f2a33;transition:background .13s ease,color .13s ease}
 .navlink.cur{background:#e7f1f8;color:#0d5f8c;font-weight:600;box-shadow:inset 2px 0 0 #008BC7}
 .navgrp > .navlink:last-child{margin-bottom:7px}
 .navlink .nm{min-width:0;overflow-wrap:break-word}
@@ -239,4 +239,46 @@ code{font-family:Consolas,"SFMono-Regular",monospace;font-size:12.5px;background
 .dc-social .so{width:14px;height:14px;fill:currentColor;display:block}
 
 @media print{.side{display:none}.main{max-width:none;padding:0}.tpl{break-inside:avoid}}
+/* microanimations. Movement is small and short, and opacity and transform are
+   the only properties animated, so nothing here changes the measured height
+   that fit() depends on. Everything is switched off for a reader who has asked
+   for reduced motion. */
+@keyframes dcIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+@keyframes dcFade{from{opacity:0}to{opacity:1}}
+@keyframes dcFill{from{width:0}to{width:var(--p)}}
+@keyframes dcPop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.18)}100%{transform:scale(1);opacity:1}}
+
+/* the section that just opened settles into place rather than snapping */
+section.tpl.active{animation:dcIn .26s cubic-bezier(.22,.7,.3,1) both}
+section.tpl.active .pane{animation:dcFade .34s ease both}
+section.tpl.active .pane.new{animation-delay:.05s}
+
+/* switching channel fades the panel in, so the eye follows the change */
+.panel:not(.hide){animation:dcFade .2s ease both}
+
+/* the sidebar responds to the pointer without jumping */
+.navlink{transition:background .13s ease,color .13s ease,box-shadow .16s ease}
+.navlink .nm,.navlink .n{transition:color .13s ease}
+.navlink .dot{transition:transform .16s ease,box-shadow .16s ease}
+.navlink:hover .dot{transform:scale(1.25)}
+.navgrp summary{transition:color .13s ease}
+
+/* a settled template marks itself once, when the page loads */
+.dot.DONE,.dot.BLOCKED{animation:dcPop .3s cubic-bezier(.3,1.3,.5,1) both}
+
+/* progress fills from empty on load, so the number is felt as well as read */
+.overall .bar::after,.navgrp summary .bar::after{animation:dcFill .7s .15s cubic-bezier(.25,.8,.3,1) both}
+
+/* controls acknowledge the pointer */
+.tab{transition:background .13s ease,color .13s ease,border-color .13s ease}
+.pagenav a:hover{transform:translateY(-1px)}
+.pagenav a{transition:border-color .13s ease,background .13s ease,transform .16s ease,box-shadow .16s ease}
+.pagenav a:hover{box-shadow:0 2px 10px rgba(16,40,64,.07)}
+.chip{transition:transform .16s ease}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none !important;transition:none !important}
+  .navgrp summary .bar::after,.overall .bar::after{width:var(--p) !important}
+}
+/* microanimations */
 `;
