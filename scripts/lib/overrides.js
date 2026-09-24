@@ -22,6 +22,8 @@ const GREETS = {
   Consignor: { name: '[Consignor First Name]', ok: /consignor/i },
   // Someone selling their vehicle to the dealership, through a valuation.
   Seller: { name: '[Seller First Name]', ok: /seller/i },
+  // Sells a vehicle to the dealership, so the dealership is the buyer here.
+  Supplier: { name: '[Supplier First Name]', ok: /supplier/i },
   // Must be the first-name field, not any field with "customer" in it:
   // [Customer Name] used to pass and left Invoice Quote out of step with the set.
   Customer: { name: '[Customer First Name]', ok: /customer first name|vehicle owner/i },
@@ -258,7 +260,7 @@ function capitaliseSentences(templates) {
 // reach someone who logs in: dealers, their staff and admin. Customers and
 // consignors have no account, so the catalogue's tick against every one of their
 // templates describes a send with nowhere to arrive.
-const NO_LOGIN = ['Customer', 'Consignor', 'Seller'];
+const NO_LOGIN = ['Customer', 'Consignor', 'Seller', 'Supplier'];
 
 function limitInApp(templates) {
   const done = [];

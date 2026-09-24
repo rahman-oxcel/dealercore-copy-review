@@ -139,9 +139,9 @@ function devRowPane(ref) {
 const GROUPS = ['Customer', 'Dealer', 'Staff', 'System'];
 // A consignor is a kind of customer, so they sit in that group rather than
 // adding a fifth heading for six templates.
-const IN_GROUP = { Consignor: 'Customer', Seller: 'Customer' };
+const IN_GROUP = { Consignor: 'Customer', Seller: 'Customer', Supplier: 'Customer' };
 // Nobody in these two groups has a DealerCore account.
-const NO_LOGIN = ['Customer', 'Consignor', 'Seller'];
+const NO_LOGIN = ['Customer', 'Consignor', 'Seller', 'Supplier'];
 // The grouping keys stay as they are, because NO_LOGIN and IN_GROUP read them.
 // Only what the reader sees changes: "System" read as machine-generated when it
 // means the DealerCore team, and "Dealer" names the business rather than the

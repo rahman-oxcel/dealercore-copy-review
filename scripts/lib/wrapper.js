@@ -49,8 +49,10 @@ const DISCLAIMER = {
 // The leading bullet is optional: Ben typed some detail blocks as bulleted
 // "Label: value" lines and others as plain ones. Both are the same content and
 // render the same way, so the sheet's typing style doesn't leak into the design.
+// An ampersand is allowed in a label here as it is in inlineRows, so a row like
+// "Application Date & Time" is not the one line in a block that renders as prose.
 const asDetailRow = (line) => {
-  const m = String(line).match(/^[•·▪‣●]?\s*([A-Z][A-Za-z /()'’-]{2,34}?)\s*:\s*(.+)$/);
+  const m = String(line).match(/^[•·▪‣●]?\s*([A-Z][A-Za-z &/()'’-]{2,34}?)\s*:\s*(.+)$/);
   if (!m) return null;
   if (/^(subject|hi|hello|dear)$/i.test(m[1].trim())) return null;
   return { label: m[1].trim(), value: m[2].trim() };
