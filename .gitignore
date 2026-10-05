@@ -43,3 +43,6 @@ data/inventory.json
 
 # Templates the owner has signed off. Drives the green dot in the sidebar.
 data/finalised.json
+
+# Frozen positions handed to the dev team. Template names, same as finalised.json.
+data/order.json
