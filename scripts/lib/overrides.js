@@ -409,6 +409,12 @@ function applyOverrides(templates) {
       t.oldPreview = rule.setOldPreview;
     }
 
+    // A notification title is its own thing, not the email subject.
+    if (rule.setInAppTitle) {
+      t.inAppTitle = rule.setInAppTitle;
+      applied.push({ tab: t.tab, ok: true, what: "in-app title set" });
+    }
+
     if (rule.setInApp) {
       applied.push({ tab: t.tab, ok: true, what: 'in-app line set' });
       t.inApp = rule.setInApp;

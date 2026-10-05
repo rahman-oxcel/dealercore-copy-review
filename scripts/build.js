@@ -184,14 +184,26 @@ const model = news.map((n) => {
 // down the nav, the "N of 100" counter agrees with them, and prev/next walks the
 // list in the order it is displayed. Sort is stable, so order within a group is
 // the sheet's own.
+// Positions already handed to the dev team. A template listed in data/order.json
+// keeps its number for good, so work done later cannot push a settled template
+// up or down the list while somebody is building from it. Anything not listed
+// falls in behind, settled first.
+const FROZEN = (() => {
+  try {
+    const f = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'order.json'), 'utf8')).frozen || [];
+    return new Map(f.map((tab, i) => [tab, i]));
+  } catch (e) { return new Map(); }
+})();
+const rank = (m) => {
+  if (FROZEN.has(m.n.tab)) return FROZEN.get(m.n.tab);
+  // Settled since the freeze: joins the end of its group's settled block.
+  return (isDone(m) ? 100000 : 200000) + news.indexOf(m.n);
+};
+
 model.sort((a, b) => {
   const g = GROUPS.indexOf(groupOf(a)) - GROUPS.indexOf(groupOf(b));
   if (g) return g;
-  // Settled templates sit at the top of their group and the work still open
-  // falls below them, so the dev team can be handed a block that is ready and
-  // work down it. Sort is stable, so within each half the sheet’s own order is
-  // kept.
-  return (isDone(b) ? 1 : 0) - (isDone(a) ? 1 : 0);
+  return rank(a) - rank(b);
 });
 
 // The page goes straight to the dev team as an instruction, so these state the
@@ -263,9 +275,12 @@ function inAppBody(n) {
 // DealerCore is web only, so this is the dashboard notification, not an
 // OS-level push. Copy mirrors the SMS: it was never written separately.
 function inAppPanel(m) {
-  if (!m.n.channels.push) return '<p class="ruled">Not required for this template.</p>';
+  if (!m.n.channels.push || m.n.redundant) return '<p class="ruled">Not required for this template.</p>';
+  // A notification title is not an email subject: it is short, sentence case and
+  // leads with the event, with the specifics on the line below. Where a template
+  // has not been given one, the subject still stands in.
   return '<div class="push"><span class="tx">' +
-      '<span class="ti">' + esc(m.n.subject || shown(m.n)) + '</span>' +
+      '<span class="ti">' + esc(m.n.inAppTitle || m.n.subject || shown(m.n)) + '</span>' +
       '<span class="bd">' + esc(m.n.inApp || inAppBody(m.n)) + '</span>' +
     '</span></div>' +
     '<div class="to">To ' + esc(label(m.n.channels.recipient) || '—') + '</div>';
@@ -437,6 +452,14 @@ function guidelines(order) {
       sig('1', 'Sent to a customer, broker, lender or other external contact, off the back of something a dealership user did.') +
       sig('2', 'Sent by DealerCore itself: verification, password resets, billing, platform and security notices, plus internal staff alerts.') +
     '</div>' +
+    // In-app copy is deliberately unlike the email, so the page says so rather
+    // than leaving it looking like an oversight.
+    '<div class="box"><h3>In-app notifications</h3><p>' +
+      'A notification is a short title and one line of specifics, not the email subject repeated. ' +
+      'The title says what happened, the line below says what it was, and neither carries a greeting ' +
+      'or a sign-off. Templates sent to a customer have no in-app notification at all, because a ' +
+      'customer has no DealerCore account.' +
+    '</p></div>' +
     // The page is the only thing shared, so what is still unresolved has to be
     // readable in one place rather than only on the template it touches.
     ((OPEN_QUESTIONS.length || SET_QUESTIONS.length) ? '<div class="box open wide"><h3>Still open</h3>' +
