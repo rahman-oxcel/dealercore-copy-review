@@ -104,6 +104,10 @@ const splitRow = (lines, i) => {
   return { label: label.replace(/:$/, ''), value: next };
 };
 
+// A message somebody wrote, rather than a field. It is set apart so the eye
+// lands on it, but stays at reading weight: it is prose, not a data point.
+const QUOTE = /^\[(Message|Enquiry|Feedback)\]$/;
+
 function renderBody(lines) {
   const out = [];
   let i = 0;
@@ -160,6 +164,11 @@ function renderBody(lines) {
         items.push(lines[i].replace(/^[•·▪‣●*-]\s+/, '').trim()); i++;
       }
       out.push('<ul class="dc-ul">' + items.map((t) => '<li>' + esc(t) + '</li>').join('') + '</ul>');
+      continue;
+    }
+    if (QUOTE.test(String(line).trim())) {
+      out.push('<table class="dc-quote"><tbody><tr><td>' + esc(line) + '</td></tr></tbody></table>');
+      i++;
       continue;
     }
     out.push('<p class="dc-p">' + esc(line) + '</p>');

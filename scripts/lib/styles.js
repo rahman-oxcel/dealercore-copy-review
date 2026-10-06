@@ -118,6 +118,7 @@ code{font-family:Consolas,"SFMono-Regular",monospace;font-size:12.5px;background
 .devrow{padding:18px}
 .devrow p{font-size:13.5px;line-height:1.6;color:#6b6259;margin:0 0 10px}
 .devrow .dc-details{margin:0}
+.devrow .dc-dt-v.raw{font:400 11.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;text-align:left;word-break:break-word;color:#6b6259}
 .box.open{border-color:#f0cfcb;background:#fdf7f6}
 .box.open ol{margin:0;padding-left:19px;font-size:13.5px;color:#4c5a66}
 .box.open li{margin-bottom:7px}
@@ -211,6 +212,8 @@ code{font-family:Consolas,"SFMono-Regular",monospace;font-size:12.5px;background
 .dc-ul li::marker{color:#a8b3bd}
 /* Reference style: small uppercase label left, value bold and right-aligned,
    hairline rule between rows. */
+.dc-quote{width:100%;border-collapse:collapse;margin:10px 0 18px}
+.dc-quote td{padding:15px 18px;background:#f4f7fa;border-left:3px solid #2f6fb5;border-radius:3px;font-size:15px;line-height:1.6;color:#2b3640}
 .dc-details{width:100%;border-collapse:collapse;margin:8px 0 18px}
 .dc-dt-l,.dc-dt-v{padding:11px 0;border-bottom:1px solid #edf0f3;vertical-align:top}
 .dc-dt-l{font-size:11px;color:#8b98a4;text-transform:uppercase;letter-spacing:.04em;font-weight:600;padding-right:16px;white-space:nowrap;width:1%}

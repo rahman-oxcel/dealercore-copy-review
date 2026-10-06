@@ -124,16 +124,25 @@ const DEV_ROWS = (() => {
   return out;
 })();
 
-function devRowPane(ref) {
+function devRowPane(ref, sheet) {
   const r = DEV_ROWS[ref];
-  if (!r) return '';
-  const row = (k, v) => v ? '<tr><td class="dc-dt-l">' + esc(k) + '</td><td class="dc-dt-v">' + esc(v) + '</td></tr>' : '';
+  if (!r && !sheet) return '';
+  const row = (k, v, cls) => v ? '<tr><td class="dc-dt-l">' + esc(k) + '</td>' +
+    '<td class="dc-dt-v' + (cls ? ' ' + cls : '') + '">' + esc(v) + '</td></tr>' : '';
+  // Where the sheet's own cells have been copied in, they are shown as written,
+  // because what it holds is the point: a body of broken code fragments is not
+  // copy anybody can check this against.
+  const cells = sheet ? row('Subject', sheet.subject) + row('Greeting', sheet.greeting) +
+      row('Body', sheet.body, 'raw') + row('Signature', sheet.signature) +
+      row('Footer', sheet.footer, 'raw')
+    : (r ? row('Subject', r.subject) : '');
+  // Where the sheet's cells are in hand they are the whole of it. Our own
+  // reading of the row adds nothing the dev team does not already have.
+  const context = (r && !sheet) ? row('Module', r.module) + row('Flow', r.flow) +
+      row('Notification', r.name) + row('Recipient', r.recipient) : '';
   return '<div class="devrow">' +
-    '<p>This one is new. Your own list has it as the notification below, with no template behind it yet.</p>' +
-    '<table class="dc-details"><tbody>' +
-      row('Module', r.module) + row('Flow', r.flow) + row('Notification', r.name) +
-      row('Subject', r.subject) + row('Recipient', r.recipient) +
-    '</tbody></table></div>';
+    (sheet ? '' : '<p>This one is new. Your own list has it as the notification below, with no template behind it yet.</p>') +
+    '<table class="dc-details"><tbody>' + context + cells + '</tbody></table></div>';
 }
 
 const GROUPS = ['Customer', 'Dealer', 'Staff', 'System'];
@@ -212,7 +221,10 @@ model.sort((a, b) => {
 // Ben wrote the SMS as a single run of text, so the greeting is split back out
 // and the sign-off added to match the template's signature category.
 function smsPanel(m) {
-  if (!m.n.sms.length) return '<p class="ruled">Not required for this template.</p>';
+  // A retired template sends nothing on any channel. clearBody empties the body
+  // but leaves the SMS behind, which showed live copy for a template nobody
+  // should build.
+  if (m.n.redundant || !m.n.sms.length) return '<p class="ruled">Not required for this template.</p>';
 
   const text = m.n.sms.join(' ').trim();
   const g = text.match(/^((?:Hi|Hello|Dear)\s+\[[^\]]+\]\s*,)\s*(.*)$/i);
@@ -359,7 +371,7 @@ function section(m, i, order) {
       // allow-same-origin only, so the parent can measure the rendered height.
       // Scripts stay blocked: without allow-scripts nothing inside can execute.
       ? '<iframe sandbox="allow-same-origin" srcdoc="' + attr(previewDoc(m.o.blade)) + '"></iframe>'
-      : (m.n.devRow && devRowPane(m.n.devRow))
+      : (m.n.devRow && devRowPane(m.n.devRow, m.n.devSheet))
         || '<p class="none">No existing template. This one is new.</p>') +
     '</div>';
 
@@ -393,7 +405,9 @@ function section(m, i, order) {
     // Nearly every template was revised, so that chip says nothing. Only the
     // exceptions are worth flagging.
     '<div class="tpl-head"><h2>' + esc(shown(m.n)) + '</h2>' +
-      (m.status === 'NEW' || m.status === 'REDUNDANT'
+      // NEW means we proposed it. A notification that is on the dev team's own
+      // list but was never built is not ours, so it carries no chip.
+      ((m.status === 'NEW' && !m.n.devRow) || m.status === 'REDUNDANT'
         ? '<span class="chip ' + m.status + '">' + m.status + '</span>' : '') +
       (m.join.status === 'RENAMED' ? '<span class="chip soft">was “' + esc(m.join.oldTitle) + '”</span>' : '') +
       (m.flagged ? '<span class="chip FLAG">Flagged</span>' : '') +

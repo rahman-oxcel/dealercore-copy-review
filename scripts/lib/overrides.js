@@ -351,6 +351,9 @@ function addTemplates(templates) {
       // The row on the dev team's list this one answers to, so the old side can
       // show what it replaces.
       devRow: a.devRow || '',
+      // What the dev list gives as the body, where it gives anything.
+      // The sheet's own cells, copied in verbatim where we have them.
+      devSheet: a.devSheet || null,
       redundantTo: '',
       redundant: false,
       why: [],

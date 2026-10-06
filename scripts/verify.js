@@ -13,7 +13,9 @@ const expected = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'new_temp
 // Layouts render a plain statement instead of an email, and a retired template
 // has no body at all, so neither contributes an email preview.
 const withBody = expected.filter((t) => t.body.length && !t.isLayout).length;
-const withSms = expected.filter((t) => t.sms.length).length;
+// A retired template sends nothing, so it shows no bubble however much SMS
+// copy the sheet left behind on it.
+const withSms = expected.filter((t) => t.sms.length && !t.redundant).length;
 
 const checks = {
   'template sections': $('section.tpl:not(.guide)').length,
