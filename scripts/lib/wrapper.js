@@ -106,7 +106,7 @@ const splitRow = (lines, i) => {
 
 // A message somebody wrote, rather than a field. It is set apart so the eye
 // lands on it, but stays at reading weight: it is prose, not a data point.
-const QUOTE = /^\[(Message|Enquiry|Feedback)\]$/;
+const QUOTE = /^\[(Message|Enquiry|Feedback|Description)\]$/;
 
 function renderBody(lines) {
   const out = [];

@@ -423,6 +423,22 @@ function applyOverrides(templates) {
       t.inApp = rule.setInApp;
     }
 
+    // Who the send actually reaches, in the dev team's own words. Shown on the
+    // page only: channels.recipient stays the key the greeting and in-app rules
+    // read, and a description like "Billing Contacts & Account Owners" cannot be.
+    if (rule.to) {
+      t.to = rule.to;
+      applied.push({ tab: t.tab, ok: true, what: 'to: ' + rule.to });
+    }
+
+    // Which sidebar group it is listed under, where that is not the one its
+    // recipient implies. Page only, like `to`: the greeting and in-app rules
+    // still read channels.recipient.
+    if (rule.group) {
+      t.group = rule.group;
+      applied.push({ tab: t.tab, ok: true, what: 'listed under ' + rule.group });
+    }
+
     if (rule.setSms) {
       applied.push({ tab: t.tab, ok: true, what: 'sms replaced' });
       t.sms = rule.setSms.slice();

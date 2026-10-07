@@ -141,7 +141,6 @@ function devRowPane(ref, sheet) {
   const context = (r && !sheet) ? row('Module', r.module) + row('Flow', r.flow) +
       row('Notification', r.name) + row('Recipient', r.recipient) : '';
   return '<div class="devrow">' +
-    (sheet ? '' : '<p>This one is new. Your own list has it as the notification below, with no template behind it yet.</p>') +
     '<table class="dc-details"><tbody>' + context + cells + '</tbody></table></div>';
 }
 
@@ -154,14 +153,25 @@ const NO_LOGIN = ['Customer', 'Consignor', 'Seller', 'Supplier'];
 // The grouping keys stay as they are, because NO_LOGIN and IN_GROUP read them.
 // Only what the reader sees changes: "System" read as machine-generated when it
 // means the DealerCore team, and "Dealer" names the business rather than the
-// person. "Dealer Principal" is the dev team's own word for the owner.
-const LABEL = { System: 'DealerCore', Dealer: 'Dealer Principal' };
+// person. The owner's word for that person is "Account Owner", which is also v0.2's.
+const LABEL = { System: 'DealerCore', Dealer: 'Account Owner' };
 const label = (r) => LABEL[r] || r;
 
 const groupOf = (m) => {
-  const r = IN_GROUP[m.n.channels.recipient] || m.n.channels.recipient;
+  const r = m.n.group || IN_GROUP[m.n.channels.recipient] || m.n.channels.recipient;
   return GROUPS.includes(r) ? r : 'System';
 };
+
+// What the sidebar shows. Dealer and Staff share one heading, with the "To" line
+// saying who inside the dealership receives each send. Sorting still runs on
+// GROUPS, so the Dealer block stays ahead of the Staff block and no number
+// already handed to the dev team moves.
+const SECTIONS = ['Customer', 'Dealership', 'System'];
+const IN_SECTION = { Dealer: 'Dealership', Staff: 'Dealership' };
+const sectionOf = (m) => IN_SECTION[groupOf(m)] || groupOf(m);
+
+// The dev team's own description of who receives it, where we have one.
+const toOf = (m) => m.n.to || label(m.n.channels.recipient) || '—';
 
 const model = news.map((n) => {
   const j = joinByTab.get(n.tab) || { status: 'NEW' };
@@ -205,8 +215,13 @@ const FROZEN = (() => {
 })();
 const rank = (m) => {
   if (FROZEN.has(m.n.tab)) return FROZEN.get(m.n.tab);
-  // Settled since the freeze: joins the end of its group's settled block.
-  return (isDone(m) ? 100000 : 200000) + news.indexOf(m.n);
+  // Settled since the freeze: joins the end of its group's settled block, in the
+  // order it was settled. Sheet order would let a later sign-off jump ahead of
+  // one already handed over.
+  if (isDone(m)) return 100000 + finalised.indexOf(m.n.tab);
+  // Moved in from another group: joins the end of the open block, so it does
+  // not jump ahead of templates already waiting there.
+  return (m.n.group ? 300000 : 200000) + news.indexOf(m.n);
 };
 
 model.sort((a, b) => {
@@ -242,7 +257,7 @@ function smsPanel(m) {
       '<div class="sms-b">' + esc(body) + '</div>' +
       '<div class="sms-s">' + signoff.map((l) => '<div>' + esc(l) + '</div>').join('') + '</div>' +
     '</div>' +
-    '<div class="to">To ' + esc(label(m.n.channels.recipient) || '—') + '</div>';
+    '<div class="to">To ' + esc(toOf(m)) + '</div>';
 }
 
 // A sentence that is only courtesy carries nothing in a notification panel.
@@ -295,7 +310,7 @@ function inAppPanel(m) {
       '<span class="ti">' + esc(m.n.inAppTitle || m.n.subject || shown(m.n)) + '</span>' +
       '<span class="bd">' + esc(m.n.inApp || inAppBody(m.n)) + '</span>' +
     '</span></div>' +
-    '<div class="to">To ' + esc(label(m.n.channels.recipient) || '—') + '</div>';
+    '<div class="to">To ' + esc(toOf(m)) + '</div>';
 }
 
 // Prev/next let a reviewer walk the whole set in order without going back to
@@ -319,7 +334,7 @@ function layoutSection(m, i, order) {
   const id = slug(m.n.tab);
   return '<section class="tpl" id="' + id + '" data-status="' + m.status +
     '" data-name="' + attr((shown(m.n) + ' ' + m.n.tab).toLowerCase()) + '">' +
-    '<div class="crumb">' + esc(label(groupOf(m))) + '<span>' + i + ' of ' + (order.length - 1) + '</span></div>' +
+    '<div class="crumb">' + esc(label(sectionOf(m))) + '<span>' + i + ' of ' + (order.length - 1) + '</span></div>' +
     '<div class="tpl-head"><h2>' + esc(shown(m.n)) + '</h2>' +
       '<span class="chip LAYOUT">Layout</span>' + invChip(m) + '</div>' +
     '<div class="cols"><div><div class="pane old"><div class="pane-h">Old (as sent today)</div>' +
@@ -371,8 +386,11 @@ function section(m, i, order) {
       // allow-same-origin only, so the parent can measure the rendered height.
       // Scripts stay blocked: without allow-scripts nothing inside can execute.
       ? '<iframe sandbox="allow-same-origin" srcdoc="' + attr(previewDoc(m.o.blade)) + '"></iframe>'
-      : (m.n.devRow && devRowPane(m.n.devRow, m.n.devSheet))
-        || '<p class="none">No existing template. This one is new.</p>') +
+      // Where the dev list's own cells have been pasted in, they are the old
+      // side. Otherwise there is nothing to compare against, and saying so is
+      // all the old side needs to do.
+      : (m.n.devSheet && devRowPane(m.n.devRow, m.n.devSheet))
+        || '<p class="none">This is new.</p>') +
     '</div>';
 
   const newPane = '<div class="pane new">' +
@@ -395,13 +413,13 @@ function section(m, i, order) {
     // No channel chips here: the tabs on the New panel already carry that, and
     // showing both meant reading the same fact twice. "Sent as" lives here
     // rather than in the New panel header, where it collided with the tabs.
-    '<span><b>To</b> ' + esc(label(c.recipient) || '—') + '</span>' +
+    '<span><b>To</b> ' + esc(toOf(m)) + '</span>' +
     '<span><b>Sent as</b> ' + esc(sigName(m.n.sigCategory)) + '</span>' +
     '</div>';
 
   return '<section class="tpl" id="' + id + '" data-status="' + m.status +
     '" data-name="' + attr((shown(m.n) + ' ' + m.n.tab).toLowerCase()) + '">' +
-    '<div class="crumb">' + esc(label(groupOf(m))) + '<span>' + i + ' of ' + (order.length - 1) + '</span></div>' +
+    '<div class="crumb">' + esc(label(sectionOf(m))) + '<span>' + i + ' of ' + (order.length - 1) + '</span></div>' +
     // Nearly every template was revised, so that chip says nothing. Only the
     // exceptions are worth flagging.
     '<div class="tpl-head"><h2>' + esc(shown(m.n)) + '</h2>' +
@@ -500,8 +518,8 @@ const order = [{ id: 'guidelines', label: 'Guidelines' }]
 // counter above each template rather than counting within the group.
 const positionOf = new Map(model.map((m, i) => [m, i + 1]));
 
-const nav = GROUPS.map((g) => {
-  const items = model.filter((m) => groupOf(m) === g);
+const nav = SECTIONS.map((g) => {
+  const items = model.filter((m) => sectionOf(m) === g);
   if (!items.length) return '';
   // How many of the group are settled, so the sidebar says where the review is
   // up to rather than only how big each group is.
@@ -669,6 +687,6 @@ route();
 const out = path.join(__dirname, '..', 'DealerCore-Reviewed-Copy.html');
 fs.writeFileSync(out, html);
 console.log('templates:', model.length, JSON.stringify(counts));
-console.log('groups   :', GROUPS.map((g) => g + '=' + model.filter((m) => groupOf(m) === g).length).join(' '));
+console.log('groups   :', SECTIONS.map((g) => g + '=' + model.filter((m) => sectionOf(m) === g).length).join(' '));
 console.log('with notes:', model.filter((m) => m.notes.length).length);
 console.log('size     :', (Buffer.byteLength(html) / 1024 / 1024).toFixed(2), 'MB');
