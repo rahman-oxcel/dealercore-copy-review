@@ -176,7 +176,8 @@ const toOf = (m) => m.n.to || label(m.n.channels.recipient) || '—';
 const model = news.map((n) => {
   const j = joinByTab.get(n.tab) || { status: 'NEW' };
   const o = j.oldId ? oldById.get(j.oldId) : null;
-  const status = n.isLayout ? 'LAYOUT' : n.redundant ? 'REDUNDANT' : !o ? 'NEW' : 'REVISED';
+  // Retired is not redundant: nothing duplicates it, it is simply no longer needed.
+  const status = n.isLayout ? 'LAYOUT' : n.retired ? 'RETIRED' : n.redundant ? 'REDUNDANT' : !o ? 'NEW' : 'REVISED';
 
   // Ben's notes, plus anything the scan of the live template turned up that he
   // did not record. Both describe what the replacement fixes.
@@ -236,6 +237,7 @@ model.sort((a, b) => {
 // Ben wrote the SMS as a single run of text, so the greeting is split back out
 // and the sign-off added to match the template's signature category.
 function smsPanel(m) {
+  if (m.n.onHold) return holdPanel(m);
   // A retired template sends nothing on any channel. clearBody empties the body
   // but leaves the SMS behind, which showed live copy for a template nobody
   // should build.
@@ -302,6 +304,7 @@ function inAppBody(n) {
 // DealerCore is web only, so this is the dashboard notification, not an
 // OS-level push. Copy mirrors the SMS: it was never written separately.
 function inAppPanel(m) {
+  if (m.n.onHold) return holdPanel(m);
   if (!m.n.channels.push || m.n.redundant) return '<p class="ruled">Not required for this template.</p>';
   // A notification title is not an email subject: it is short, sentence case and
   // leads with the event, with the specifics on the line below. Where a template
@@ -349,6 +352,47 @@ function layoutSection(m, i, order) {
     '</div>' + pager(i, order) + '</section>';
 }
 
+// One template that sends in several versions (an upgrade, a downgrade, a
+// cancellation) shows each version in turn under its own label, on every
+// channel. A version only overrides what differs; the rest is the template's.
+function versions(m) {
+  if (!(m.n.variants || []).length) return [{ label: '', m }];
+  return m.n.variants.map((v) => {
+    const n = Object.assign({}, m.n);
+    ['subject', 'body', 'sms', 'inAppTitle', 'inApp', 'cta', 'ctaAfter'].forEach((k) => { if (v[k] !== undefined) n[k] = v[k]; });
+    return { label: v.label, m: Object.assign({}, m, { n }) };
+  });
+}
+
+// Renders each version of one channel in its own wrapper, only the first
+// showing; the version tabs switch between them. The To line is the same for
+// every version, so it is kept once, at the end.
+function stacked(m, render) {
+  const vs = versions(m);
+  if (vs.length === 1) return render(m);
+  const TO = /<div class="to">[\s\S]*?<\/div>$/;
+  let to = '';
+  const out = vs.map((v, i) => {
+    let html = render(v.m);
+    const hit = html.match(TO);
+    if (hit) { to = hit[0]; html = html.slice(0, hit.index); }
+    return '<div class="vpanel' + (i ? ' hide' : '') + '" data-v="' + i + '">' + html + '</div>';
+  }).join('');
+  return out + to;
+}
+
+const isNew = (m) => !m.o && !m.n.devRow && !m.n.devSheet &&
+  (!inventory[m.n.tab] || inventory[m.n.tab].status === 'Only in v0.1');
+
+// The copy panel is what the dev team reads, so an on-hold template says there
+// what happens next rather than leaving them to find the question above.
+const holdPanel = (m) => '<div class="hold"><b>On hold. Nothing to build yet.</b>' +
+  '<p><b>What’s next:</b> ' + esc(m.n.holdNext || 'the dev team confirms the flow to the AU team.') + '</p>' +
+  '<p>Once that is answered, the AU team writes the copy for this template.</p></div>';
+
+// "Upgrade, Downgrade and Cancellation"
+const listOf = (xs) => xs.length < 2 ? xs.join('') : xs.slice(0, -1).join(', ') + ' and ' + xs[xs.length - 1];
+
 function section(m, i, order) {
   const id = slug(m.n.tab);
   const c = m.n.channels;
@@ -357,8 +401,9 @@ function section(m, i, order) {
   // so a labelled field above the preview would show the same text twice.
   // The old side only ever has an email, so the channel tabs belong to the new
   // panel rather than to the whole template.
-  const emailPanel = m.n.body.length
-    ? renderEmail({
+  const emailPanel = m.n.onHold ? holdPanel(m)
+    : m.n.body.length
+    ? stacked(m, (m) => renderEmail({
         sigCategory: m.n.sigCategory,
         subject: m.n.subject,
         body: m.n.body,
@@ -370,7 +415,8 @@ function section(m, i, order) {
         // any subject containing "update" or "review" grew a button nobody chose.
         cta: m.n.cta || '',
         ctaAfter: m.n.ctaAfter || '',
-      })
+      }))
+    : m.n.retired ? '<p class="none">Retired. This email is no longer needed.</p>'
     : '<p class="none">Marked redundant' + (m.n.redundantTo ? ' to “' + esc(m.n.redundantTo) + '”' : '') + '.</p>';
 
   // A layout has no copy to show, so it gets a plain statement instead of the
@@ -400,12 +446,19 @@ function section(m, i, order) {
       '<span class="tabs">' +
         '<button class="tab on" data-p="email">' + icon('email') + '<span>Email</span></button>' +
         '<button class="tab' + (m.n.sms.length ? '' : ' empty') + '" data-p="sms">' + icon('sms') + '<span>SMS</span></button>' +
-        '<button class="tab' + (m.n.channels.push ? '' : ' empty') + '" data-p="push">' + icon('push') + '<span>In-app</span></button>' +
+        '<button class="tab' + (m.n.channels.push && !m.n.onHold ? '' : ' empty') + '" data-p="push">' + icon('push') + '<span>In-app</span></button>' +
       '</span>' +
     '</div>' +
+    // Which version is showing. A second row, so it reads as a choice on top
+    // of the channel rather than as another channel.
+    ((m.n.variants || []).length
+      ? '<div class="vtabs"><span class="vlab">Version</span>' +
+          m.n.variants.map((v, i) => '<button class="vtab' + (i ? '' : ' on') + '" data-v="' + i + '">' + esc(v.label) + '</button>').join('') +
+        '</div>'
+      : '') +
     '<div class="panel" data-p="email">' + emailPanel + '</div>' +
-    '<div class="panel hide" data-p="sms"><div class="chan">' + smsPanel(m) + '</div></div>' +
-    '<div class="panel hide" data-p="push"><div class="chan">' + inAppPanel(m) + '</div></div>' +
+    '<div class="panel hide" data-p="sms"><div class="chan">' + stacked(m, smsPanel) + '</div></div>' +
+    '<div class="panel hide" data-p="push"><div class="chan">' + stacked(m, inAppPanel) + '</div></div>' +
     '</div>';
 
   const meta = '<div class="meta">' +
@@ -425,16 +478,30 @@ function section(m, i, order) {
     '<div class="tpl-head"><h2>' + esc(shown(m.n)) + '</h2>' +
       // NEW means we proposed it. A notification that is on the dev team's own
       // list but was never built is not ours, so it carries no chip.
-      ((m.status === 'NEW' && !m.n.devRow) || m.status === 'REDUNDANT'
+      ((m.status === 'NEW' && !m.n.devRow) || m.status === 'REDUNDANT' || m.status === 'RETIRED'
         ? '<span class="chip ' + m.status + '">' + m.status + '</span>' : '') +
       (m.join.status === 'RENAMED' ? '<span class="chip soft">was “' + esc(m.join.oldTitle) + '”</span>' : '') +
       (m.flagged ? '<span class="chip FLAG">Flagged</span>' : '') +
+      (m.n.onHold ? '<span class="chip HOLD">On hold</span>' : '') +
+      ((m.n.variants || []).length ? '<span class="chip VERS">' + m.n.variants.length + ' versions</span>' : '') +
       (m.hasAttachment ? '<span class="chip ATTACH">' + icon('email') + 'Attachment</span>' : '') +
       invChip(m) +
       '</div>' +
     meta +
     (m.flagNote ? '<div class="flagbar"><b>Open question</b>' + esc(m.flagNote) + '</div>' : '') +
-    (m.noteBar ? '<div class="notebar"><b>New addition</b>' + esc(m.noteBar) + '</div>' : '') +
+    // Anything on the dev team's list already exists, so only a template with no
+    // live version and nothing on that list is headed as new. "Only in v0.1"
+    // rows were added to the list to register our own proposals, so they count
+    // as nothing there.
+    (m.noteBar ? '<div class="notebar"><b>' + (isNew(m) ? 'New addition' : 'Note') + '</b>' + esc(m.noteBar) + '</div>' : '') +
+    // A version behind a tab is easy to miss, so the page says outright how
+    // many there are and that each one is built.
+    ((m.n.variants || []).length
+      ? '<div class="notebar"><b>' + m.n.variants.length + ' versions</b>This template sends in ' + m.n.variants.length +
+        ' versions: ' + esc(listOf(m.n.variants.map((v) => v.label))) + '. ' +
+        (m.n.variants.length === 2 ? 'Build both' : 'Build all ' + m.n.variants.length) +
+        '. Switch between them with the version tabs above the copy.</div>'
+      : '') +
     '<div class="cols"><div>' + oldPane + '</div><div class="newcol">' + newPane + '</div></div>' +
     pager(i, order) +
     '</section>';
@@ -532,7 +599,8 @@ const nav = SECTIONS.map((g) => {
     items.map((m) => '<a class="navlink' + (isDone(m) ? ' settled' : '') + '" href="#' + slug(m.n.tab) + '" data-status="' + m.status +
       '" data-name="' + attr((shown(m.n) + ' ' + m.n.tab).toLowerCase()) + '">' +
       '<span class="n">' + positionOf.get(m) + '</span>' +
-      '<span class="nm">' + esc(shown(m.n)) + '</span>' +
+      '<span class="nm">' + esc(shown(m.n)) +
+        ((m.n.variants || []).length ? '<span class="vx">×' + m.n.variants.length + '</span>' : '') + '</span>' +
       // Three states, and nothing else in the sidebar. Green: settled. Red: the
       // copy is settled but an open question on it is still unanswered. Nothing:
       // not reached yet.
@@ -585,7 +653,9 @@ window.addEventListener('blur', function () {
 // element measures zero, so this can only run once the section is showing.
 function fit(sec) {
   if (!sec) return;
-  var stage = sec.querySelector('.panel[data-p="email"] .dc-stage');
+  // With versions, only the one on show has a height; the others are hidden.
+  var stage = sec.querySelector('.panel[data-p="email"] .vpanel:not(.hide) .dc-stage') ||
+    sec.querySelector('.panel[data-p="email"] .dc-stage');
   var panels = sec.querySelectorAll('.panel');
   if (!panels.length) return;
 
@@ -644,6 +714,18 @@ document.addEventListener('click', function (e) {
   var want = t.dataset.p;
   sec.querySelectorAll('.tab').forEach(function (b) { b.classList.toggle('on', b === t); });
   sec.querySelectorAll('.panel').forEach(function (p) { p.classList.toggle('hide', p.dataset.p !== want); });
+});
+
+// Version tabs switch every channel at once, so moving from Upgrade to
+// Downgrade keeps you on SMS if that is where you were.
+document.addEventListener('click', function (e) {
+  var t = e.target.closest('.vtab');
+  if (!t) return;
+  var sec = t.closest('section.tpl');
+  var want = t.dataset.v;
+  sec.querySelectorAll('.vtab').forEach(function (b) { b.classList.toggle('on', b === t); });
+  sec.querySelectorAll('.vpanel').forEach(function (p) { p.classList.toggle('hide', p.dataset.v !== want); });
+  fit(sec);
 });
 
 function route() { show((location.hash || '').replace(/^#/, '') || 'guidelines'); }

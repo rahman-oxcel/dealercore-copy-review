@@ -12,10 +12,12 @@ const ids = $('section.tpl:not(.guide)').map((i, e) => $(e).attr('id')).get();
 const expected = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'new_templates.json'), 'utf8')).templates;
 // Layouts render a plain statement instead of an email, and a retired template
 // has no body at all, so neither contributes an email preview.
-const withBody = expected.filter((t) => t.body.length && !t.isLayout).length;
+// A template that sends in several versions shows one preview per version.
+const copies = (t) => (t.variants || []).length || 1;
+const withBody = expected.filter((t) => t.body.length && !t.isLayout).reduce((n, t) => n + copies(t), 0);
 // A retired template sends nothing, so it shows no bubble however much SMS
 // copy the sheet left behind on it.
-const withSms = expected.filter((t) => t.sms.length && !t.redundant).length;
+const withSms = expected.filter((t) => t.sms.length && !t.redundant).reduce((n, t) => n + copies(t), 0);
 
 const checks = {
   'template sections': $('section.tpl:not(.guide)').length,

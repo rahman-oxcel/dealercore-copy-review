@@ -92,6 +92,9 @@ function normaliseGreetings(templates) {
   const done = [];
   templates.forEach((t) => {
     if (t.isLayout) return;
+    // Set from overrides where the form holds only one name field, so the
+    // greeting cannot follow the recipient's usual first-name placeholder.
+    if (t.keepGreeting) return;
     const rule = GREETS[t.channels.recipient] || GREETS.System;
     fixEmailGreeting(t, rule, done);
     fixSmsGreeting(t, rule, done);
@@ -386,10 +389,31 @@ function applyOverrides(templates) {
 
     // Retiring a template: clearing the body is what drives the REDUNDANT state,
     // and `redundant` was computed before overrides ran, so set it here too.
+    // Retired: no longer needed at all (its form or feature is gone), as opposed
+    // to redundant, which means another template already does the job.
+    if (rule.retire) {
+      t.retired = true;
+      t.redundant = true;
+      t.body = [];
+      t.sms = [];
+      applied.push({ tab: t.tab, ok: true, what: 'retired' });
+    }
+
     if (rule.clearBody && t.body.length) {
       applied.push({ tab: t.tab, ok: true, what: 'body cleared, marked redundant' });
       t.body = [];
       t.redundant = true;
+    }
+
+    // Waiting on the dev team to explain the flow: no copy is shown on any
+    // channel until it is answered, so nobody builds from a guess.
+    if (rule.hold) {
+      t.onHold = true;
+      // hold may be the next step itself, shown in every copy panel.
+      if (typeof rule.hold === 'string') t.holdNext = rule.hold;
+      t.body = [];
+      t.sms = [];
+      applied.push({ tab: t.tab, ok: true, what: 'on hold, copy withheld' });
     }
 
     // Where the sheet's copy is not wrong but answers the wrong event, line
@@ -429,6 +453,27 @@ function applyOverrides(templates) {
     if (rule.to) {
       t.to = rule.to;
       applied.push({ tab: t.tab, ok: true, what: 'to: ' + rule.to });
+    }
+
+    // One send that goes out in several versions. Each version names itself
+    // and overrides only what differs: subject, body, sms, inAppTitle, inApp,
+    // cta, ctaAfter.
+    if (rule.variants) {
+      t.variants = rule.variants;
+      applied.push({ tab: t.tab, ok: true, what: rule.variants.length + ' versions: ' + rule.variants.map((v) => v.label).join(', ') });
+    }
+
+    // The greeting is written exactly as given; normaliseGreetings() leaves it.
+    if (rule.keepGreeting) {
+      t.keepGreeting = true;
+      applied.push({ tab: t.tab, ok: true, what: 'greeting kept as written' });
+    }
+
+    // When it sends, where the sheet's own wording ("Sent as a reminder.")
+    // does not say enough to build from.
+    if (rule.trigger) {
+      t.trigger = rule.trigger;
+      applied.push({ tab: t.tab, ok: true, what: 'trigger set' });
     }
 
     // Which sidebar group it is listed under, where that is not the one its

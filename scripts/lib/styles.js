@@ -109,6 +109,7 @@ code{font-family:Consolas,"SFMono-Regular",monospace;font-size:12.5px;background
 .chip.REVISED{background:#e9f4fb;color:#0d5f8c;border-color:#c3e0f1}
 .chip.UNCHANGED{background:#f1f4f7;color:#5c6a77;border-color:#dde4ea}
 .chip.REDUNDANT{background:#fdeceb;color:#8c2418;border-color:#f2ccc6}
+.chip.RETIRED{background:#f3f5f7;color:#5c6a77;border-color:#d9e0e6}
 .chip.LAYOUT{background:#f2f0f7;color:#544273;border-color:#ddd6ea}
 .chip.ATTACH{display:inline-flex;align-items:center;gap:5px;background:#fdf6e9;color:#8a6516;border-color:#f0e0bf}
 .chip.ATTACH .ci{width:11px;height:11px;fill:currentColor}
@@ -173,6 +174,16 @@ code{font-family:Consolas,"SFMono-Regular",monospace;font-size:12.5px;background
 .sms-s{color:#5b6873}
 .sms-s div{line-height:1.5}
 .to{font-size:11.5px;color:#8b98a4;margin-top:7px;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.vtabs{display:flex;align-items:center;gap:3px;padding:6px 8px 6px 12px;background:#fdf8ec;border-bottom:1px solid #f0dfae}
+.vlab{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#a06d05;margin-right:6px}
+.vtab{padding:4px 9px;border:1px solid #f0dfae;border-radius:6px;background:#fff;font:700 10.5px/1 inherit;text-transform:uppercase;letter-spacing:.05em;color:#8a6516;cursor:pointer}
+.vtab.on{background:#d99a06;border-color:#d99a06;color:#fff}
+.vpanel.hide{display:none}
+.chip.VERS{background:#fdf6e9;color:#8a6516;border-color:#f0e0bf}
+.chip.HOLD{background:#f3f5f7;color:#5c6a77;border-color:#d9e0e6}
+.hold{margin:18px;padding:16px 18px;border:1px dashed #c9d3dc;border-radius:10px;background:#f7f9fb;color:#3c4a57;font-size:13.5px;line-height:1.6}
+.hold b{color:#1f2d3a}.hold p{margin:8px 0 0}
+.vx{margin-left:5px;font-size:10.5px;font-weight:700;color:#a06d05}
 .ruled{font-size:13.5px;color:#5b6873;margin:0}
 .push{background:#f3f5f7;border:1px solid #e0e6ea;border-radius:11px;padding:10px 13px}
 .push .tx{min-width:0;display:block}
