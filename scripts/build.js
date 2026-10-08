@@ -605,13 +605,9 @@ const positionOf = new Map(model.map((m, i) => [m, i + 1]));
 const nav = SECTIONS.map((g) => {
   const items = model.filter((m) => sectionOf(m) === g);
   if (!items.length) return '';
-  // How many of the group are settled, so the sidebar says where the review is
-  // up to rather than only how big each group is.
-  const done = items.filter(isDone).length;
   return '<details class="navgrp"><summary>' + esc(label(g)) +
-      '<span class="cnt">' + done + '/' + items.length + '</span>' +
     '</summary>' +
-    items.map((m) => '<a class="navlink' + (isDone(m) ? ' settled' : '') + '" href="#' + slug(m.n.tab) + '" data-status="' + m.status +
+    items.map((m) => '<a class="navlink" href="#' + slug(m.n.tab) + '" data-status="' + m.status +
       '" data-name="' + attr((shown(m.n) + ' ' + m.n.tab).toLowerCase()) + '">' +
       '<span class="n">' + positionOf.get(m) + '</span>' +
       '<span class="nm">' + esc(shown(m.n)) +
@@ -629,10 +625,6 @@ const html = '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
   '<div class="layout"><aside class="side">' +
     '<div class="side-title">' + lockup('dc-mark-side') + '</div>' +
     '<input class="search" id="q" type="search" placeholder="Search templates…" autocomplete="off">' +
-    (() => {
-      const d = model.filter(isDone).length;
-      return '<div class="overall"><span>' + d + ' of ' + model.length + '</span></div>';
-    })() +
     '<a class="navlink navtop" href="#guidelines" data-name="guidelines">Guidelines</a>' +
     nav +
   '</aside><main class="main">' +

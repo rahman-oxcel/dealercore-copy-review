@@ -16,36 +16,23 @@ code{font-family:Consolas,"SFMono-Regular",monospace;font-size:12.5px;background
 .filt{font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;border:1px solid #d9e1e8;background:#fff;color:#5c6a77;cursor:pointer}
 .filt.on{background:#1f2a33;border-color:#1f2a33;color:#fff}
 .navgrp{margin-bottom:3px;border-bottom:1px solid #eaeff3}
-.navgrp summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:8px 7px;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#5c6a77}
+.navgrp summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:flex-start;padding:8px 7px;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#5c6a77}
 .navgrp summary::-webkit-details-marker{display:none}
 .navgrp summary::before{content:"›";display:inline-block;margin-right:7px;color:#a8b3bd;font-weight:700;transition:transform .12s}
 .navgrp[open] summary::before{transform:rotate(90deg)}
 .navgrp summary span{color:#a8b3bd;font-weight:600;font-size:11px}
 .navgrp summary{position:relative;flex-wrap:wrap}
-.navgrp summary .cnt{font-variant-numeric:tabular-nums}
 .navgrp summary{padding-bottom:9px;position:sticky;top:-18px;background:#f7f9fb;z-index:2}
-.navgrp summary .cnt em{font-style:normal;margin-left:6px;color:#8b98a4}
-.navgrp summary .bar{position:absolute;left:7px;right:7px;bottom:3px;height:2px;border-radius:1px;background:#e4eaef;overflow:hidden}
-.navgrp summary .bar::after{content:"";position:absolute;inset:0;width:var(--p);background:#12703f;border-radius:1px}
-/* (3) settled reads quieter, so the eye lands on what is left */
-.navlink.settled .nm{color:#9aa6b1;font-weight:400}
-.navlink.settled .n{color:#c0cad3}
 /* (4) the total the group bars never give */
-.overall{position:relative;display:flex;align-items:center;justify-content:space-between;margin:0 7px 10px;padding-bottom:8px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#5c6a77}
-.overall em{font-style:normal;color:#8b98a4;font-variant-numeric:tabular-nums}
-.overall .bar{position:absolute;left:0;right:0;bottom:0;height:3px;border-radius:2px;background:#e4eaef;overflow:hidden}
-.overall .bar::after{content:"";position:absolute;inset:0;width:var(--p);background:#12703f;border-radius:2px}
 .navgrp summary:hover{color:#1f2a33}
 .navtop{padding-left:7px!important;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#5c6a77;margin-bottom:6px}
 .navlink{display:flex;align-items:flex-start;gap:7px;padding:4px 7px;font-size:12.5px;line-height:1.45;color:#5c6a77;border-radius:6px;text-decoration:none}
 .navlink .n{flex:none;width:19px;text-align:right;font-size:10.5px;line-height:1.7;color:#b0bbc5;font-variant-numeric:tabular-nums}
 .navlink.cur .n{color:#3d90bd}
-.navlink .dot{margin-left:auto;margin-top:5px}
 .navlink:hover{background:#eaeff4;color:#1f2a33;transition:background .13s ease,color .13s ease}
 .navlink.cur{background:#e7f1f8;color:#0d5f8c;font-weight:600;box-shadow:inset 2px 0 0 #008BC7}
 .navgrp > .navlink:last-child{margin-bottom:7px}
 .navlink .nm{min-width:0;overflow-wrap:break-word}
-.dot{width:6px;height:6px;border-radius:50%;flex:none}
 
 .main{flex:1;min-width:0;padding:32px 40px 80px;max-width:1280px}
 .pagehead{padding-bottom:8px;margin-bottom:24px}
@@ -113,9 +100,6 @@ code{font-family:Consolas,"SFMono-Regular",monospace;font-size:12.5px;background
 .chip.LAYOUT{background:#f2f0f7;color:#544273;border-color:#ddd6ea}
 .chip.ATTACH{display:inline-flex;align-items:center;gap:5px;background:#fdf6e9;color:#8a6516;border-color:#f0e0bf}
 .chip.ATTACH .ci{width:11px;height:11px;fill:currentColor}
-/* Green means finalised, and nothing else earns a dot. */
-.dot.DONE{background:#12703f;box-shadow:0 0 0 2px #cdeadb}
-.dot.BLOCKED{background:#b3261e;box-shadow:0 0 0 2px #f6d5d2}
 .devrow{padding:18px}
 .devrow p{font-size:13.5px;line-height:1.6;color:#6b6259;margin:0 0 10px}
 .devrow .dc-details{margin:0}
@@ -259,8 +243,6 @@ code{font-family:Consolas,"SFMono-Regular",monospace;font-size:12.5px;background
    for reduced motion. */
 @keyframes dcIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
 @keyframes dcFade{from{opacity:0}to{opacity:1}}
-@keyframes dcFill{from{width:0}to{width:var(--p)}}
-@keyframes dcPop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.18)}100%{transform:scale(1);opacity:1}}
 
 /* the section that just opened settles into place rather than snapping */
 section.tpl.active{animation:dcIn .26s cubic-bezier(.22,.7,.3,1) both}
@@ -273,15 +255,9 @@ section.tpl.active .pane.new{animation-delay:.05s}
 /* the sidebar responds to the pointer without jumping */
 .navlink{transition:background .13s ease,color .13s ease,box-shadow .16s ease}
 .navlink .nm,.navlink .n{transition:color .13s ease}
-.navlink .dot{transition:transform .16s ease,box-shadow .16s ease}
-.navlink:hover .dot{transform:scale(1.25)}
 .navgrp summary{transition:color .13s ease}
 
-/* a settled template marks itself once, when the page loads */
-.dot.DONE,.dot.BLOCKED{animation:dcPop .3s cubic-bezier(.3,1.3,.5,1) both}
 
-/* progress fills from empty on load, so the number is felt as well as read */
-.overall .bar::after,.navgrp summary .bar::after{animation:dcFill .7s .15s cubic-bezier(.25,.8,.3,1) both}
 
 /* controls acknowledge the pointer */
 .tab{transition:background .13s ease,color .13s ease,border-color .13s ease}
@@ -292,7 +268,6 @@ section.tpl.active .pane.new{animation-delay:.05s}
 
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none !important;transition:none !important}
-  .navgrp summary .bar::after,.overall .bar::after{width:var(--p) !important}
 }
 /* microanimations */
 `;
