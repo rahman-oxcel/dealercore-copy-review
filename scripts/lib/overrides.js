@@ -404,6 +404,9 @@ function applyOverrides(templates) {
       t.body = [];
       t.redundant = true;
     }
+    // Which template it duplicates, shown in the copy panel ("Marked redundant
+    // to ...") so the dev team knows what to keep.
+    if (rule.redundantTo) t.redundantTo = rule.redundantTo;
 
     // Waiting on the dev team to explain the flow: no copy is shown on any
     // channel until it is answered, so nobody builds from a guess.
@@ -423,6 +426,9 @@ function applyOverrides(templates) {
       applied.push({ tab: t.tab, ok: true,
         what: 'body replaced (' + t.body.length + ' -> ' + rule.setBody.length + ' lines)' });
       t.body = rule.setBody.slice();
+      // A tab the sheet left empty was marked redundant on extraction. Copy
+      // written here brings it back, unless this rule also retires it.
+      if (t.body.length && !rule.clearBody && !rule.retire) t.redundant = false;
       // Ben's notes describe edits to copy that no longer exists ("changed to
       // Australian English spelling" against a paragraph that has gone), so the
       // override's own notes stand alone, as they do for a layout.

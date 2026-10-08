@@ -14,10 +14,11 @@ const expected = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'new_temp
 // has no body at all, so neither contributes an email preview.
 // A template that sends in several versions shows one preview per version.
 const copies = (t) => (t.variants || []).length || 1;
-const withBody = expected.filter((t) => t.body.length && !t.isLayout).reduce((n, t) => n + copies(t), 0);
+// An on-hold template shows what happens next instead of its draft copy.
+const withBody = expected.filter((t) => t.body.length && !t.isLayout && !t.onHold).reduce((n, t) => n + copies(t), 0);
 // A retired template sends nothing, so it shows no bubble however much SMS
 // copy the sheet left behind on it.
-const withSms = expected.filter((t) => t.sms.length && !t.redundant).reduce((n, t) => n + copies(t), 0);
+const withSms = expected.filter((t) => t.sms.length && !t.redundant && !t.onHold).reduce((n, t) => n + copies(t), 0);
 
 const checks = {
   'template sections': $('section.tpl:not(.guide)').length,

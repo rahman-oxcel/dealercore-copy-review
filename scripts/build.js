@@ -20,6 +20,10 @@ const qa = R('qa_old.json');
 // on a fresh clone, and absent per template when the two agree.
 let inventory = {};
 try { inventory = R('data/inventory.json'); } catch (e) { /* not supplied */ }
+// Each v0.2 row's own name and status, straight from the export, so the mapping
+// shown on a template is in the dev team's words, row by row.
+let V02 = {};
+try { V02 = R('data/v02-rows.json'); } catch (e) { /* not supplied */ }
 // Templates the owner has signed off. The only mark in the sidebar: everything
 // else about a template is carried by the chips on the template itself.
 let finalised = [];
@@ -36,7 +40,16 @@ const INV_CLASS = {
   'Partially Matched': 'PARTIAL',
   'Only in v0.1': 'NOTLISTED',
 };
+// Every row the template answers to, with v0.2's own name and status for it.
+const v02Map = (m) => {
+  const e = inventory[m.n.tab];
+  if (!e || !(e.rows || []).length) return 'Not on your list';
+  return e.rows.map((r) => 'Row ' + r + ': ' + esc((V02[r] || {}).action || '?') +
+    ((V02[r] || {}).status ? ' (' + esc(V02[r].status) + ')' : '')).join('; ');
+};
+// Superseded by v02Map in the details line; kept so the call sites stay simple.
 const invChip = (m) => {
+  return '';
   // A settled template has had its question answered, so the status it held
   // against the dev team's list is history. The green dot in the sidebar is the
   // only mark it needs.
@@ -144,7 +157,9 @@ function devRowPane(ref, sheet) {
     '<table class="dc-details"><tbody>' + context + cells + '</tbody></table></div>';
 }
 
-const GROUPS = ['Customer', 'Dealer', 'Staff', 'System'];
+// Unmatched holds rows on the dev team's list that no template here answers
+// to. It comes last, so nothing already numbered moves.
+const GROUPS = ['Customer', 'Dealer', 'Staff', 'System', 'Unmatched'];
 // A consignor is a kind of customer, so they sit in that group rather than
 // adding a fifth heading for six templates.
 const IN_GROUP = { Consignor: 'Customer', Seller: 'Customer', Supplier: 'Customer' };
@@ -154,7 +169,7 @@ const NO_LOGIN = ['Customer', 'Consignor', 'Seller', 'Supplier'];
 // Only what the reader sees changes: "System" read as machine-generated when it
 // means the DealerCore team, and "Dealer" names the business rather than the
 // person. The owner's word for that person is "Account Owner", which is also v0.2's.
-const LABEL = { System: 'DealerCore', Dealer: 'Account Owner' };
+const LABEL = { System: 'DealerCore', Dealer: 'Account Owner', Unmatched: 'Unmatched' };
 const label = (r) => LABEL[r] || r;
 
 const groupOf = (m) => {
@@ -166,7 +181,7 @@ const groupOf = (m) => {
 // saying who inside the dealership receives each send. Sorting still runs on
 // GROUPS, so the Dealer block stays ahead of the Staff block and no number
 // already handed to the dev team moves.
-const SECTIONS = ['Customer', 'Dealership', 'System'];
+const SECTIONS = ['Customer', 'Dealership', 'System', 'Unmatched'];
 const IN_SECTION = { Dealer: 'Dealership', Staff: 'Dealership' };
 const sectionOf = (m) => IN_SECTION[groupOf(m)] || groupOf(m);
 
@@ -340,6 +355,7 @@ function layoutSection(m, i, order) {
     '<div class="crumb">' + esc(label(sectionOf(m))) + '<span>' + i + ' of ' + (order.length - 1) + '</span></div>' +
     '<div class="tpl-head"><h2>' + esc(shown(m.n)) + '</h2>' +
       '<span class="chip LAYOUT">Layout</span>' + invChip(m) + '</div>' +
+    '<div class="meta"><span><b>v0.2</b> ' + v02Map(m) + '</span></div>' +
     '<div class="cols"><div><div class="pane old"><div class="pane-h">Old (as sent today)</div>' +
       (m.o ? '<iframe sandbox="allow-same-origin" srcdoc="' + attr(previewDoc(m.o.blade)) + '"></iframe>' : '') +
     '</div></div><div class="newcol">' +
@@ -468,6 +484,7 @@ function section(m, i, order) {
     // rather than in the New panel header, where it collided with the tabs.
     '<span><b>To</b> ' + esc(toOf(m)) + '</span>' +
     '<span><b>Sent as</b> ' + esc(sigName(m.n.sigCategory)) + '</span>' +
+    '<span><b>v0.2</b> ' + v02Map(m) + '</span>' +
     '</div>';
 
   return '<section class="tpl" id="' + id + '" data-status="' + m.status +
@@ -593,7 +610,7 @@ const nav = SECTIONS.map((g) => {
   const done = items.filter(isDone).length;
   const pct = Math.round((done / items.length) * 100);
   return '<details class="navgrp"><summary>' + esc(label(g)) +
-      '<span class="cnt">' + done + '/' + items.length + '<em>' + pct + '%</em></span>' +
+      '<span class="cnt">' + done + '/' + items.length + '</span>' +
       '<i class="bar" style="--p:' + pct + '%"></i>' +
     '</summary>' +
     items.map((m) => '<a class="navlink' + (isDone(m) ? ' settled' : '') + '" href="#' + slug(m.n.tab) + '" data-status="' + m.status +
@@ -601,10 +618,8 @@ const nav = SECTIONS.map((g) => {
       '<span class="n">' + positionOf.get(m) + '</span>' +
       '<span class="nm">' + esc(shown(m.n)) +
         ((m.n.variants || []).length ? '<span class="vx">×' + m.n.variants.length + '</span>' : '') + '</span>' +
-      // Three states, and nothing else in the sidebar. Green: settled. Red: the
-      // copy is settled but an open question on it is still unanswered. Nothing:
-      // not reached yet.
-      (isDone(m) ? '<span class="dot ' + (m.flagged ? 'BLOCKED' : 'DONE') + '"></span>' : '') +
+      // No status dots: every template is settled, so a dot on each said nothing.
+      // Open questions show on the template itself, as the red flag bar.
       '</a>').join('') +
     '</details>';
 }).join('');
@@ -619,7 +634,7 @@ const html = '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
     (() => {
       const d = model.filter(isDone).length;
       const p = Math.round((d / model.length) * 100);
-      return '<div class="overall"><span>' + d + ' of ' + model.length + '</span><em>' + p + '%</em>' +
+      return '<div class="overall"><span>' + d + ' of ' + model.length + '</span>' +
         '<i class="bar" style="--p:' + p + '%"></i></div>';
     })() +
     '<a class="navlink navtop" href="#guidelines" data-name="guidelines">Guidelines</a>' +
