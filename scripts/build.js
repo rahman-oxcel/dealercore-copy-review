@@ -608,10 +608,8 @@ const nav = SECTIONS.map((g) => {
   // How many of the group are settled, so the sidebar says where the review is
   // up to rather than only how big each group is.
   const done = items.filter(isDone).length;
-  const pct = Math.round((done / items.length) * 100);
   return '<details class="navgrp"><summary>' + esc(label(g)) +
       '<span class="cnt">' + done + '/' + items.length + '</span>' +
-      '<i class="bar" style="--p:' + pct + '%"></i>' +
     '</summary>' +
     items.map((m) => '<a class="navlink' + (isDone(m) ? ' settled' : '') + '" href="#' + slug(m.n.tab) + '" data-status="' + m.status +
       '" data-name="' + attr((shown(m.n) + ' ' + m.n.tab).toLowerCase()) + '">' +
@@ -633,9 +631,7 @@ const html = '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
     '<input class="search" id="q" type="search" placeholder="Search templates…" autocomplete="off">' +
     (() => {
       const d = model.filter(isDone).length;
-      const p = Math.round((d / model.length) * 100);
-      return '<div class="overall"><span>' + d + ' of ' + model.length + '</span>' +
-        '<i class="bar" style="--p:' + p + '%"></i></div>';
+      return '<div class="overall"><span>' + d + ' of ' + model.length + '</span></div>';
     })() +
     '<a class="navlink navtop" href="#guidelines" data-name="guidelines">Guidelines</a>' +
     nav +
